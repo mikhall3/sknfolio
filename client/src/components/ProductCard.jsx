@@ -1,16 +1,33 @@
 import { useState } from 'react'
-import { Star, Trash2, Sunrise, Moon, SunMoon, PackageCheck } from 'lucide-react'
+import { Star, Trash2, Sunrise, Moon, SunMoon, PackageCheck, StickyNote, ChevronDown, ChevronUp, Plus } from 'lucide-react'
 import { CATEGORY_MAP } from '../data/categories'
+import { friendlyDate } from '../lib/dates'
 
 const TIME_ICON = { AM: Sunrise, PM: Moon, BOTH: SunMoon }
 const RETIRE_LABEL = { REBOUGHT: 'Rebought', REPLACED: 'Replaced', RETIRED: 'Retired' }
 
-export default function ProductCard({ product, onToggleFavourite, onDelete, onMarkEmpty }) {
+export default function ProductCard({ product, onToggleFavourite, onDelete, onMarkEmpty, onAddNote }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [notesOpen, setNotesOpen] = useState(false)
+  const [noteDraft, setNoteDraft] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
+  const notes = product.notes || []
   const category = CATEGORY_MAP[product.category]
   const Icon = category?.icon
   const TimeIcon = TIME_ICON[product.timeOfDay]
   const archived = product.status === 'ARCHIVED'
+
+  async function submitNote() {
+    const text = noteDraft.trim()
+    if (!text) return
+    setSavingNote(true)
+    try {
+      await onAddNote(product, text)
+      setNoteDraft('')
+    } finally {
+      setSavingNote(false)
+    }
+  }
 
   return (
     <div className="bg-white border border-plum-100 rounded-2xl p-3.5 flex flex-col gap-2.5">
@@ -95,6 +112,46 @@ export default function ProductCard({ product, onToggleFavourite, onDelete, onMa
           </div>
         )}
       </div>
+
+      <button
+        onClick={() => setNotesOpen((v) => !v)}
+        className="flex items-center gap-1 text-[11px] text-plum-400 hover:text-blush-600 self-start"
+      >
+        <StickyNote size={12} strokeWidth={1.75} />
+        {notes.length > 0 ? `${notes.length} note${notes.length === 1 ? '' : 's'}` : 'Add a note'}
+        {notesOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+      </button>
+
+      {notesOpen && (
+        <div className="border-t border-plum-50 pt-2.5 space-y-2">
+          {notes.length > 0 && (
+            <div className="space-y-1.5 max-h-32 overflow-y-auto">
+              {notes.map((note) => (
+                <div key={note.id} className="text-xs">
+                  <span className="text-plum-300 text-[10px]">{friendlyDate(note.date.slice(0, 10))}</span>
+                  <p className="text-plum-600 leading-snug">{note.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-1.5">
+            <input
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), submitNote())}
+              placeholder="How's it working out?"
+              className="flex-1 rounded-lg border border-plum-100 bg-cream-100 px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blush-300"
+            />
+            <button
+              onClick={submitNote}
+              disabled={savingNote || !noteDraft.trim()}
+              className="rounded-lg bg-plum-100 text-plum-600 px-2 hover:bg-plum-200 transition-colors disabled:opacity-50"
+            >
+              <Plus size={13} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

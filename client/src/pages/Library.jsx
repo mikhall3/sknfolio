@@ -71,6 +71,13 @@ export default function Library() {
     }
   }
 
+  async function addNote(product, text) {
+    const { note } = await api.post(`/products/${product.id}/notes`, { text })
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, notes: [note, ...(p.notes || [])] } : p))
+    )
+  }
+
   function handleEmptyDone({ action, product, rebought }) {
     upsertProduct(product)
     setEmptyingProduct(null)
@@ -166,6 +173,7 @@ export default function Library() {
                     onToggleFavourite={toggleFavourite}
                     onDelete={deleteProduct}
                     onMarkEmpty={setEmptyingProduct}
+                    onAddNote={addNote}
                   />
                 ))}
               </div>
