@@ -1,10 +1,11 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { BookOpen, Library, LogOut, Sparkles } from 'lucide-react'
+import { BookOpen, Library, LogOut, Sparkles, TrendingUp } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const tabs = [
   { to: '/diary', label: 'Diary', icon: BookOpen },
   { to: '/library', label: 'Library', icon: Library },
+  { to: '/insights', label: 'Insights', icon: TrendingUp },
 ]
 
 export default function Layout() {

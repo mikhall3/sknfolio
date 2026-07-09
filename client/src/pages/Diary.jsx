@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Activity } from 'lucide-react'
 import { api } from '../lib/api'
 import { localDateString, addDays, friendlyDate } from '../lib/dates'
 import DiarySection from '../components/DiarySection'
 import AddProductModal from '../components/AddProductModal'
 import ConflictBanner from '../components/ConflictBanner'
+import AbnormalityModal from '../components/AbnormalityModal'
 import { logFavouriteToday } from '../lib/diaryFavourites'
 
 const TODAY = localDateString()
@@ -15,6 +16,7 @@ export default function Diary() {
   const [activeProducts, setActiveProducts] = useState([])
   const [note, setNote] = useState('')
   const [modalConfig, setModalConfig] = useState(null)
+  const [trackingOpen, setTrackingOpen] = useState(false)
   const noteTimer = useRef(null)
 
   useEffect(() => {
@@ -148,6 +150,12 @@ export default function Diary() {
               rows={3}
               className="w-full bg-transparent text-sm text-plum-800 placeholder:text-plum-300 focus:outline-none resize-none"
             />
+            <button
+              onClick={() => setTrackingOpen(true)}
+              className="flex items-center gap-1 text-xs font-medium text-blush-600 hover:text-blush-700 mt-2"
+            >
+              <Activity size={13} /> Track a change on skin
+            </button>
           </div>
         </div>
       )}
@@ -164,6 +172,13 @@ export default function Diary() {
             refreshEntry()
           }
         }}
+      />
+
+      <AbnormalityModal
+        open={trackingOpen}
+        date={dateStr}
+        onClose={() => setTrackingOpen(false)}
+        onLogged={() => {}}
       />
     </div>
   )

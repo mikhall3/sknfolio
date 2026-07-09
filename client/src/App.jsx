@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Diary from './pages/Diary'
 import Library from './pages/Library'
+import Insights from './pages/Insights'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
             <Route element={<Layout />}>
               <Route path="/diary" element={<Diary />} />
               <Route path="/library" element={<Library />} />
+              <Route path="/insights" element={<Insights />} />
               <Route path="/" element={<Navigate to="/diary" replace />} />
             </Route>
           </Route>

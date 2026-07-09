@@ -17,3 +17,9 @@ export function startOfWeek(date) {
   d.setUTCDate(d.getUTCDate() + diff)
   return d
 }
+
+export function addDays(date, delta) {
+  const d = new Date(date)
+  d.setUTCDate(d.getUTCDate() + delta)
+  return d
+}
