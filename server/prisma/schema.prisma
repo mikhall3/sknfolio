@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  magicLinks    MagicLink[]
+  sessions      Session[]
+  products      Product[]
+  diaryEntries  DiaryEntry[]
+  checkins      Checkin[]
+  abnormalities Abnormality[]
+}
+
+model MagicLink {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum Category {
+  CLEANSER
+  CLEANSING_BALM_OIL
+  EXFOLIANT
+  TONER
+  ESSENCE
+  AMPOULE
+  EYE_CREAM
+  SERUM
+  ACTIVE
+  MOISTURISER
+  SPOT_TREATMENT
+  SPF
+  FACIAL_MIST
+  LIP_TREATMENT
+  FACE_MASK
+  SHEET_MASK
+  EYE_PATCHES
+}
+
+enum TimeOfDay {
+  AM
+  PM
+  BOTH
+}
+
+enum ProductStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum RetireReason {
+  REBOUGHT
+  REPLACED
+  RETIRED
+}
+
+model Product {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  category  Category
+  dateAdded DateTime      @default(now())
+  status    ProductStatus @default(ACTIVE)
+  fillLevel Int           @default(100)
+  favourite Boolean       @default(false)
+  timeOfDay TimeOfDay     @default(BOTH)
+
+  emptyRating    Int?
+  emptyComment   String?
+  retireReason   RetireReason?
+  archivedAt     DateTime?
+  reboughtFromId String?
+  reboughtFrom   Product?  @relation("Rebuy", fields: [reboughtFromId], references: [id], onDelete: SetNull)
+  reboughtAs     Product[] @relation("Rebuy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ingredientTags ProductIngredient[]
+  notes          ProductNote[]
+  diaryLogs      DiaryProductLog[]
+
+  @@index([userId, status])
+}
+
+model ProductNote {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  date      DateTime @default(now())
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+enum IngredientConfidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model ProductIngredient {
+  id         String                @id @default(cuid())
+  productId  String
+  product    Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  key        String
+  label      String
+  confidence IngredientConfidence?
+  source     String?
+  createdAt  DateTime              @default(now())
+
+  @@unique([productId, key])
+}
+
+model DiaryEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs DiaryProductLog[]
+
+  @@unique([userId, date])
+}
+
+enum LogPeriod {
+  AM
+  PM
+}
+
+model DiaryProductLog {
+  id           String     @id @default(cuid())
+  diaryEntryId String
+  diaryEntry   DiaryEntry @relation(fields: [diaryEntryId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  period       LogPeriod
+  createdAt    DateTime   @default(now())
+
+  @@unique([diaryEntryId, productId, period])
+}
+
+enum Feeling {
+  GREAT
+  OKAY
+  ROUGH
+}
+
+model Checkin {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekOf    DateTime
+  feeling   Feeling
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, weekOf])
+}
+
+enum AbnormalityType {
+  BREAKOUT
+  REDNESS
+  DRYNESS
+  OILINESS
+  SENSITIVITY
+  TEXTURE
+  OTHER
+}
+
+model Abnormality {
+  id       String          @id @default(cuid())
+  userId   String
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date     DateTime        @default(now())
+  type     AbnormalityType
+  severity Int
+  note     String?
+  createdAt DateTime       @default(now())
+
+  @@index([userId, date])
+}

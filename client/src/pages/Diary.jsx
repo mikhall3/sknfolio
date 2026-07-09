@@ -1,0 +1,166 @@
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { api } from '../lib/api'
+import { localDateString, addDays, friendlyDate } from '../lib/dates'
+import DiarySection from '../components/DiarySection'
+import AddProductModal from '../components/AddProductModal'
+import { logFavouriteToday } from '../lib/diaryFavourites'
+
+const TODAY = localDateString()
+
+export default function Diary() {
+  const [dateStr, setDateStr] = useState(TODAY)
+  const [entry, setEntry] = useState(null)
+  const [activeProducts, setActiveProducts] = useState([])
+  const [note, setNote] = useState('')
+  const [modalConfig, setModalConfig] = useState(null)
+  const noteTimer = useRef(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setEntry(null)
+    const loader =
+      dateStr === TODAY ? api.post(`/diary/${dateStr}/prime-favourites`) : api.get(`/diary/${dateStr}`)
+    loader.then((res) => {
+      if (cancelled) return
+      setEntry(res.entry)
+      setNote(res.entry.note)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [dateStr])
+
+  const loadActiveProducts = useCallback(() => {
+    api.get('/products?status=ACTIVE').then((res) => setActiveProducts(res.products))
+  }, [])
+
+  useEffect(() => {
+    loadActiveProducts()
+  }, [loadActiveProducts])
+
+  function refreshEntry() {
+    api.get(`/diary/${dateStr}`).then((res) => setEntry(res.entry))
+  }
+
+  async function handleLog(period, productId) {
+    setEntry((prev) => {
+      if (!prev) return prev
+      const product = activeProducts.find((p) => p.id === productId)
+      if (!product) return prev
+      const key = period === 'AM' ? 'am' : 'pm'
+      return { ...prev, [key]: [...prev[key], { logId: `temp-${productId}`, product }] }
+    })
+    try {
+      await api.post(`/diary/${dateStr}/log`, { productId, period })
+      refreshEntry()
+    } catch {
+      refreshEntry()
+    }
+  }
+
+  async function handleUnlog(period, logId, productId) {
+    setEntry((prev) => {
+      if (!prev) return prev
+      const key = period === 'AM' ? 'am' : 'pm'
+      return { ...prev, [key]: prev[key].filter((l) => l.logId !== logId) }
+    })
+    try {
+      await api.delete(`/diary/${dateStr}/log?productId=${productId}&period=${period}`)
+    } catch {
+      refreshEntry()
+    }
+  }
+
+  function handleNoteChange(value) {
+    setNote(value)
+    clearTimeout(noteTimer.current)
+    noteTimer.current = setTimeout(() => {
+      api.put(`/diary/${dateStr}/note`, { note: value })
+    }, 600)
+  }
+
+  function availableFor(period) {
+    const loggedIds = new Set((entry?.[period === 'AM' ? 'am' : 'pm'] || []).map((l) => l.product.id))
+    return activeProducts.filter(
+      (p) => !loggedIds.has(p.id) && (p.timeOfDay === period || p.timeOfDay === 'BOTH')
+    )
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <button
+          onClick={() => setDateStr((d) => addDays(d, -1))}
+          className="w-8 h-8 flex items-center justify-center rounded-full text-plum-400 hover:bg-plum-50"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <div className="text-center">
+          <h1 className="font-display text-2xl font-semibold text-plum-900">{friendlyDate(dateStr)}</h1>
+          {dateStr !== TODAY && (
+            <button onClick={() => setDateStr(TODAY)} className="text-xs text-blush-600 font-medium">
+              Back to today
+            </button>
+          )}
+        </div>
+        <button
+          onClick={() => setDateStr((d) => addDays(d, 1))}
+          disabled={dateStr === TODAY}
+          className="w-8 h-8 flex items-center justify-center rounded-full text-plum-400 hover:bg-plum-50 disabled:opacity-30"
+        >
+          <ChevronRight size={18} />
+        </button>
+      </div>
+
+      {!entry ? (
+        <div className="flex justify-center py-16 text-plum-300">
+          <Loader2 size={22} className="animate-spin" />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <DiarySection
+            period="AM"
+            logs={entry.am}
+            availableProducts={availableFor('AM')}
+            onLog={(productId) => handleLog('AM', productId)}
+            onUnlog={(logId, productId) => handleUnlog('AM', logId, productId)}
+            onNew={() => setModalConfig({ defaultTimeOfDay: 'AM' })}
+          />
+          <DiarySection
+            period="PM"
+            logs={entry.pm}
+            availableProducts={availableFor('PM')}
+            onLog={(productId) => handleLog('PM', productId)}
+            onUnlog={(logId, productId) => handleUnlog('PM', logId, productId)}
+            onNew={() => setModalConfig({ defaultTimeOfDay: 'PM' })}
+          />
+
+          <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
+            <h2 className="font-display text-lg font-semibold text-plum-900 mb-2">Notes</h2>
+            <textarea
+              value={note}
+              onChange={(e) => handleNoteChange(e.target.value)}
+              placeholder="How did skin feel today? Anything you noticed?"
+              rows={3}
+              className="w-full bg-transparent text-sm text-plum-800 placeholder:text-plum-300 focus:outline-none resize-none"
+            />
+          </div>
+        </div>
+      )}
+
+      <AddProductModal
+        open={Boolean(modalConfig)}
+        defaultTimeOfDay={modalConfig?.defaultTimeOfDay}
+        onClose={() => setModalConfig(null)}
+        onCreated={async (product) => {
+          setActiveProducts((prev) => [...prev, product])
+          if (dateStr === TODAY) {
+            await logFavouriteToday(product)
+            refreshEntry()
+          }
+        }}
+      />
+    </div>
+  )
+}
