@@ -108,6 +108,68 @@ router.patch('/:id', async (req, res) => {
   res.json({ product })
 })
 
+const EMPTY_ACTIONS = {
+  rebuy: 'REBOUGHT',
+  replace: 'REPLACED',
+  retire: 'RETIRED',
+}
+
+router.post('/:id/empty', async (req, res) => {
+  const existing = await prisma.product.findFirst({
+    where: { id: req.params.id, userId: req.user.id },
+    include: { ingredientTags: true },
+  })
+  if (!existing) return res.status(404).json({ error: 'Product not found.' })
+  if (existing.status !== 'ACTIVE') return res.status(400).json({ error: 'This product is already archived.' })
+
+  const { rating, comment, action } = req.body || {}
+  const cleanRating = Number(rating)
+  if (!Number.isInteger(cleanRating) || cleanRating < 1 || cleanRating > 5) {
+    return res.status(400).json({ error: 'Rating must be a whole number from 1 to 5.' })
+  }
+  const retireReason = EMPTY_ACTIONS[action]
+  if (!retireReason) return res.status(400).json({ error: 'Action must be rebuy, replace, or retire.' })
+  const cleanComment = comment ? String(comment).trim().slice(0, 2000) : null
+
+  const archivedProduct = await prisma.product.update({
+    where: { id: existing.id },
+    data: {
+      status: 'ARCHIVED',
+      archivedAt: new Date(),
+      emptyRating: cleanRating,
+      emptyComment: cleanComment,
+      retireReason,
+    },
+    include: productInclude,
+  })
+
+  let rebought = null
+  if (action === 'rebuy') {
+    rebought = await prisma.product.create({
+      data: {
+        userId: req.user.id,
+        name: existing.name,
+        category: existing.category,
+        fillLevel: 100,
+        timeOfDay: existing.timeOfDay,
+        favourite: existing.favourite,
+        reboughtFromId: existing.id,
+        ingredientTags: {
+          create: existing.ingredientTags.map((tag) => ({
+            key: tag.key,
+            label: tag.label,
+            confidence: tag.confidence,
+            source: tag.source,
+          })),
+        },
+      },
+      include: productInclude,
+    })
+  }
+
+  res.json({ product: archivedProduct, rebought })
+})
+
 router.delete('/:id', async (req, res) => {
   const existing = await prisma.product.findFirst({ where: { id: req.params.id, userId: req.user.id } })
   if (!existing) return res.status(404).json({ error: 'Product not found.' })

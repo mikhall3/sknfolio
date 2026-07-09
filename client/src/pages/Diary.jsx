@@ -150,6 +150,7 @@ export default function Diary() {
       )}
 
       <AddProductModal
+        key={modalConfig ? JSON.stringify(modalConfig) : 'closed'}
         open={Boolean(modalConfig)}
         defaultTimeOfDay={modalConfig?.defaultTimeOfDay}
         onClose={() => setModalConfig(null)}

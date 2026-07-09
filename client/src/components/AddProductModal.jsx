@@ -6,10 +6,10 @@ import { api } from '../lib/api'
 
 const STEPS = ['category', 'name', 'fill', 'timing', 'regular', 'ingredients']
 
-export default function AddProductModal({ open, onClose, onCreated, defaultTimeOfDay }) {
+export default function AddProductModal({ open, onClose, onCreated, defaultTimeOfDay, defaultCategory }) {
   const [stepIndex, setStepIndex] = useState(0)
   const [form, setForm] = useState({
-    category: null,
+    category: defaultCategory || null,
     name: '',
     fillLevel: 100,
     timeOfDay: defaultTimeOfDay || null,
@@ -60,7 +60,14 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
 
   function reset() {
     setStepIndex(0)
-    setForm({ category: null, name: '', fillLevel: 100, timeOfDay: defaultTimeOfDay || null, favourite: null, ingredients: [] })
+    setForm({
+      category: defaultCategory || null,
+      name: '',
+      fillLevel: 100,
+      timeOfDay: defaultTimeOfDay || null,
+      favourite: null,
+      ingredients: [],
+    })
     setFreeform('')
     setError('')
   }

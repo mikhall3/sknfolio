@@ -4,11 +4,14 @@ import { api } from '../lib/api'
 import { CATEGORY_MAP } from '../data/categories'
 import ProductCard from '../components/ProductCard'
 import AddProductModal from '../components/AddProductModal'
+import EmptyProductModal from '../components/EmptyProductModal'
 import { logFavouriteToday } from '../lib/diaryFavourites'
 
 export default function Library() {
   const [products, setProducts] = useState(null)
-  const [modalOpen, setModalOpen] = useState(false)
+  const [tab, setTab] = useState('active')
+  const [addModalConfig, setAddModalConfig] = useState(null)
+  const [emptyingProduct, setEmptyingProduct] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -17,20 +20,33 @@ export default function Library() {
 
   function load() {
     api
-      .get('/products?status=ACTIVE')
+      .get('/products')
       .then((res) => setProducts(res.products))
       .catch((err) => setError(err.message))
   }
 
+  const visibleProducts = useMemo(() => {
+    if (!products) return null
+    const status = tab === 'active' ? 'ACTIVE' : 'ARCHIVED'
+    return products.filter((p) => p.status === status)
+  }, [products, tab])
+
   const grouped = useMemo(() => {
-    if (!products) return []
+    if (!visibleProducts) return []
     const map = new Map()
-    for (const p of products) {
+    for (const p of visibleProducts) {
       if (!map.has(p.category)) map.set(p.category, [])
       map.get(p.category).push(p)
     }
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
-  }, [products])
+  }, [visibleProducts])
+
+  function upsertProduct(product) {
+    setProducts((prev) => {
+      const others = (prev || []).filter((p) => p.id !== product.id)
+      return [...others, product]
+    })
+  }
 
   async function toggleFavourite(product) {
     setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, favourite: !p.favourite } : p)))
@@ -50,18 +66,51 @@ export default function Library() {
     }
   }
 
+  function handleEmptyDone({ action, product, rebought }) {
+    upsertProduct(product)
+    setEmptyingProduct(null)
+    if (action === 'rebuy' && rebought) {
+      setProducts((prev) => [...prev, rebought])
+      logFavouriteToday(rebought)
+    }
+    if (action === 'replace') {
+      setAddModalConfig({ defaultCategory: product.category, defaultTimeOfDay: product.timeOfDay })
+    }
+  }
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="font-display text-2xl font-semibold text-plum-900">Your shelf</h1>
-          <p className="text-sm text-plum-400">{products?.length ?? 0} products in rotation</p>
+          <p className="text-sm text-plum-400">
+            {tab === 'active' ? `${visibleProducts?.length ?? 0} products in rotation` : `${visibleProducts?.length ?? 0} finished up`}
+          </p>
         </div>
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={() => setAddModalConfig({})}
           className="flex items-center gap-1 rounded-full bg-blush-500 text-white text-sm font-medium pl-3 pr-4 py-2 hover:bg-blush-600 transition-colors"
         >
           <Plus size={16} /> Add
+        </button>
+      </div>
+
+      <div className="inline-flex rounded-full bg-plum-50 p-1 mb-5 text-sm">
+        <button
+          onClick={() => setTab('active')}
+          className={`px-4 py-1.5 rounded-full font-medium transition-colors ${
+            tab === 'active' ? 'bg-white text-blush-600 shadow-sm' : 'text-plum-400'
+          }`}
+        >
+          Active
+        </button>
+        <button
+          onClick={() => setTab('archived')}
+          className={`px-4 py-1.5 rounded-full font-medium transition-colors ${
+            tab === 'archived' ? 'bg-white text-blush-600 shadow-sm' : 'text-plum-400'
+          }`}
+        >
+          Finished
         </button>
       </div>
 
@@ -71,10 +120,14 @@ export default function Library() {
         <div className="flex justify-center py-16 text-plum-300">
           <Loader2 size={22} className="animate-spin" />
         </div>
-      ) : products.length === 0 ? (
+      ) : visibleProducts.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-plum-400 text-sm mb-1">Your shelf is empty.</p>
-          <p className="text-plum-300 text-xs">Add the first thing you reach for.</p>
+          <p className="text-plum-400 text-sm mb-1">
+            {tab === 'active' ? 'Your shelf is empty.' : "Nothing finished up yet."}
+          </p>
+          <p className="text-plum-300 text-xs">
+            {tab === 'active' ? 'Add the first thing you reach for.' : 'Empties will land here once you use something up.'}
+          </p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -90,6 +143,7 @@ export default function Library() {
                     product={product}
                     onToggleFavourite={toggleFavourite}
                     onDelete={deleteProduct}
+                    onMarkEmpty={setEmptyingProduct}
                   />
                 ))}
               </div>
@@ -99,12 +153,22 @@ export default function Library() {
       )}
 
       <AddProductModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        key={addModalConfig ? JSON.stringify(addModalConfig) : 'closed'}
+        open={Boolean(addModalConfig)}
+        defaultCategory={addModalConfig?.defaultCategory}
+        defaultTimeOfDay={addModalConfig?.defaultTimeOfDay}
+        onClose={() => setAddModalConfig(null)}
         onCreated={(product) => {
           setProducts((prev) => [...(prev || []), product])
           logFavouriteToday(product)
         }}
+      />
+
+      <EmptyProductModal
+        open={Boolean(emptyingProduct)}
+        product={emptyingProduct}
+        onClose={() => setEmptyingProduct(null)}
+        onDone={handleEmptyDone}
       />
     </div>
   )
