@@ -5,7 +5,9 @@ import { CATEGORY_MAP } from '../data/categories'
 import ProductCard from '../components/ProductCard'
 import AddProductModal from '../components/AddProductModal'
 import EmptyProductModal from '../components/EmptyProductModal'
+import ConflictBanner from '../components/ConflictBanner'
 import { logFavouriteToday } from '../lib/diaryFavourites'
+import { commonIngredients } from '../lib/ingredientStats'
 
 export default function Library() {
   const [products, setProducts] = useState(null)
@@ -40,6 +42,9 @@ export default function Library() {
     }
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
   }, [visibleProducts])
+
+  const activeProducts = useMemo(() => (products || []).filter((p) => p.status === 'ACTIVE'), [products])
+  const topIngredients = useMemo(() => commonIngredients(activeProducts).slice(0, 5), [activeProducts])
 
   function upsertProduct(product) {
     setProducts((prev) => {
@@ -113,6 +118,23 @@ export default function Library() {
           Finished
         </button>
       </div>
+
+      {tab === 'active' && <ConflictBanner products={activeProducts} />}
+
+      {tab === 'active' && topIngredients.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 mb-5">
+          <span className="text-xs text-plum-400 mr-0.5">Most used:</span>
+          {topIngredients.map((ing) => (
+            <span
+              key={ing.key}
+              className="inline-flex items-center gap-1 rounded-full bg-plum-50 text-plum-500 text-xs px-2.5 py-1"
+            >
+              {ing.label}
+              <span className="text-plum-300">· {ing.count}</span>
+            </span>
+          ))}
+        </div>
+      )}
 
       {error && <p className="text-sm text-blush-600 mb-4">{error}</p>}
 

@@ -1,8 +1,19 @@
 import { useState } from 'react'
-import { X, ChevronLeft, ChevronRight, Check, Loader2, Plus } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Check, Loader2, Plus, Sparkles, AlertTriangle } from 'lucide-react'
 import { CATEGORIES, FILL_LEVELS, TIME_OF_DAY_OPTIONS } from '../data/categories'
 import { CURATED_INGREDIENTS, slugify } from '../data/ingredients'
 import { api } from '../lib/api'
+
+const CONFIDENCE_STYLE = {
+  HIGH: 'border-blush-200 bg-blush-50 text-blush-700',
+  MEDIUM: 'border-plum-200 bg-cream-200 text-plum-600',
+  LOW: 'border-plum-300 bg-plum-50 text-plum-700',
+}
+const CONFIDENCE_LABEL = {
+  HIGH: 'High confidence — found this product directly',
+  MEDIUM: 'Medium confidence — a close match, worth double-checking',
+  LOW: 'Low confidence — please verify against the label',
+}
 
 const STEPS = ['category', 'name', 'fill', 'timing', 'regular', 'ingredients']
 
@@ -19,6 +30,9 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
   const [freeform, setFreeform] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [lookupStatus, setLookupStatus] = useState('idle')
+  const [lookupResult, setLookupResult] = useState(null)
+  const [lookupError, setLookupError] = useState('')
 
   if (!open) return null
 
@@ -70,6 +84,34 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
     })
     setFreeform('')
     setError('')
+    setLookupStatus('idle')
+    setLookupResult(null)
+    setLookupError('')
+  }
+
+  async function handleLookup() {
+    setLookupStatus('loading')
+    setLookupError('')
+    try {
+      const result = await api.post('/ingredients/detect', { name: form.name, category: form.category })
+      setLookupResult(result)
+      setForm((f) => {
+        const existingKeys = new Set(f.ingredients.map((i) => i.key))
+        const additions = (result.ingredients || [])
+          .map((ing) => {
+            const key = ing.key || slugify(ing.label)
+            if (!key || existingKeys.has(key)) return null
+            existingKeys.add(key)
+            return { key, label: ing.label, confidence: result.confidence, source: 'ai' }
+          })
+          .filter(Boolean)
+        return { ...f, ingredients: [...f.ingredients, ...additions] }
+      })
+      setLookupStatus('done')
+    } catch (err) {
+      setLookupError(err.message || 'Could not look this up.')
+      setLookupStatus('error')
+    }
   }
 
   function handleClose() {
@@ -235,7 +277,40 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
           {step === 'ingredients' && (
             <div>
               <h2 className="font-display text-2xl font-semibold mb-1">Tag its ingredients</h2>
-              <p className="text-sm text-plum-500 mb-5">Optional — helps us flag conflicts later.</p>
+              <p className="text-sm text-plum-500 mb-3">Optional — helps us flag conflicts later.</p>
+
+              <button
+                onClick={handleLookup}
+                disabled={lookupStatus === 'loading' || !form.name.trim()}
+                className="flex items-center gap-1.5 rounded-full border border-plum-200 bg-white text-plum-600 text-xs font-medium px-3 py-1.5 mb-3 hover:border-blush-300 hover:text-blush-600 transition-colors disabled:opacity-50"
+              >
+                {lookupStatus === 'loading' ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Sparkles size={13} />
+                )}
+                Look up real ingredients
+              </button>
+
+              {lookupError && (
+                <p className="text-xs text-blush-700 bg-blush-50 border border-blush-200 rounded-xl px-3 py-2 mb-3">
+                  {lookupError}
+                </p>
+              )}
+
+              {lookupResult && (
+                <div className={`rounded-xl border p-3 mb-4 text-xs ${CONFIDENCE_STYLE[lookupResult.confidence]}`}>
+                  <p className="font-medium mb-1 flex items-center gap-1.5">
+                    {lookupResult.confidence === 'LOW' && <AlertTriangle size={12} />}
+                    {CONFIDENCE_LABEL[lookupResult.confidence]}
+                  </p>
+                  <p className="leading-relaxed">{lookupResult.summary}</p>
+                  <p className="text-[11px] opacity-70 mt-1.5">
+                    Smart guidance, not medical advice — always check the actual label.
+                  </p>
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-2 mb-4">
                 {CURATED_INGREDIENTS.map((ing) => {
                   const active = form.ingredients.some((i) => i.key === ing.key)

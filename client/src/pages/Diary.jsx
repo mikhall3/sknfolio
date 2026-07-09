@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { localDateString, addDays, friendlyDate } from '../lib/dates'
 import DiarySection from '../components/DiarySection'
 import AddProductModal from '../components/AddProductModal'
+import ConflictBanner from '../components/ConflictBanner'
 import { logFavouriteToday } from '../lib/diaryFavourites'
 
 const TODAY = localDateString()
@@ -112,6 +113,8 @@ export default function Diary() {
           <ChevronRight size={18} />
         </button>
       </div>
+
+      <ConflictBanner products={activeProducts} />
 
       {!entry ? (
         <div className="flex justify-center py-16 text-plum-300">
