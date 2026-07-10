@@ -50,7 +50,9 @@ router.post('/detect', async (req, res) => {
 
   const name = String(req.body?.name || '').trim()
   if (!name) return res.status(400).json({ error: 'Product name is required.' })
+  const brand = req.body?.brand ? String(req.body.brand).trim() : ''
   const category = req.body?.category ? String(req.body.category) : undefined
+  const fullName = brand ? `${brand} ${name}` : name
 
   try {
     const anthropic = new Anthropic()
@@ -62,7 +64,12 @@ router.post('/detect', async (req, res) => {
       output_config: { format: { type: 'json_schema', schema: RESPONSE_SCHEMA } },
       system: SYSTEM_PROMPT,
       messages: [
-        { role: 'user', content: `Product: ${name}${category ? ` (category: ${category})` : ''}` },
+        {
+          role: 'user',
+          content: `Product: ${fullName}${category ? ` (category: ${category})` : ''}${
+            brand ? `\nBrand: ${brand}\nProduct name: ${name}` : ''
+          }`,
+        },
       ],
     })
 

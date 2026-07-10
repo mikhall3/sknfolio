@@ -84,6 +84,7 @@ model Product {
   id        String        @id @default(cuid())
   userId    String
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brand     String?
   name      String
   category  Category
   dateAdded DateTime      @default(now())

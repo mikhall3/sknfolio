@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Search, Plus } from 'lucide-react'
 import { CATEGORY_MAP } from '../data/categories'
+import { productLabel } from '../lib/productLabel'
 
 export default function ProductPicker({ products, onPick, onNew, onClose }) {
   const [query, setQuery] = useState('')
-  const filtered = products.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()))
+  const filtered = products.filter((p) => productLabel(p).toLowerCase().includes(query.toLowerCase()))
 
   return (
     <div className="mt-2 rounded-2xl border border-blush-200 bg-white shadow-sm p-3">
@@ -29,7 +30,7 @@ export default function ProductPicker({ products, onPick, onNew, onClose }) {
             }}
             className="w-full flex items-center justify-between rounded-xl px-2.5 py-2 text-left hover:bg-blush-50 transition-colors"
           >
-            <span className="text-sm text-plum-800 truncate">{p.name}</span>
+            <span className="text-sm text-plum-800 truncate">{productLabel(p)}</span>
             <span className="text-[11px] text-plum-400 shrink-0 ml-2">{CATEGORY_MAP[p.category]?.label}</span>
           </button>
         ))}

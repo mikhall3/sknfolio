@@ -3,6 +3,7 @@ import { Flame, Smile, Meh, Frown, Loader2, Plus, Pencil, Trash2 } from 'lucide-
 import { api } from '../lib/api'
 import { localDateString, friendlyDate } from '../lib/dates'
 import { FEELING_OPTIONS, ABNORMALITY_TYPES } from '../data/insights'
+import { productLabel } from '../lib/productLabel'
 import AbnormalityModal from '../components/AbnormalityModal'
 
 const TODAY = localDateString()
@@ -165,13 +166,13 @@ export default function Insights() {
                     {day.am.length > 0 && (
                       <p className="text-xs text-plum-600">
                         <span className="text-plum-400">AM ·</span>{' '}
-                        {day.am.map((l) => l.product.name).join(', ')}
+                        {day.am.map((l) => productLabel(l.product)).join(', ')}
                       </p>
                     )}
                     {day.pm.length > 0 && (
                       <p className="text-xs text-plum-600">
                         <span className="text-plum-400">PM ·</span>{' '}
-                        {day.pm.map((l) => l.product.name).join(', ')}
+                        {day.pm.map((l) => productLabel(l.product)).join(', ')}
                       </p>
                     )}
                     {day.note && <p className="text-xs text-plum-500 italic">"{day.note}"</p>}

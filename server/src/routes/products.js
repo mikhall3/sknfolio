@@ -40,10 +40,11 @@ router.get('/', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
-  const { name, category, fillLevel, timeOfDay, favourite, ingredients } = req.body || {}
+  const { brand, name, category, fillLevel, timeOfDay, favourite, ingredients } = req.body || {}
 
   const cleanName = String(name || '').trim()
   if (!cleanName) return res.status(400).json({ error: 'Name is required.' })
+  const cleanBrand = brand ? String(brand).trim() : null
   if (!Category[category]) return res.status(400).json({ error: 'Invalid category.' })
   if (!VALID_FILL_LEVELS.includes(fillLevel)) return res.status(400).json({ error: 'Invalid fill level.' })
   const tod = TimeOfDay[timeOfDay] ? timeOfDay : 'BOTH'
@@ -53,6 +54,7 @@ router.post('/', async (req, res) => {
   const product = await prisma.product.create({
     data: {
       userId: req.user.id,
+      brand: cleanBrand || null,
       name: cleanName,
       category,
       fillLevel,
@@ -79,8 +81,9 @@ router.patch('/:id', async (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Product not found.' })
 
   const data = {}
-  const { name, category, fillLevel, timeOfDay, favourite } = req.body || {}
+  const { brand, name, category, fillLevel, timeOfDay, favourite } = req.body || {}
 
+  if (brand !== undefined) data.brand = brand ? String(brand).trim() || null : null
   if (name !== undefined) {
     const cleanName = String(name).trim()
     if (!cleanName) return res.status(400).json({ error: 'Name cannot be empty.' })
@@ -148,6 +151,7 @@ router.post('/:id/empty', async (req, res) => {
     rebought = await prisma.product.create({
       data: {
         userId: req.user.id,
+        brand: existing.brand,
         name: existing.name,
         category: existing.category,
         fillLevel: 100,

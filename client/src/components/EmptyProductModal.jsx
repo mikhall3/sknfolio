@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Star, Loader2, RefreshCw, Shuffle, Archive } from 'lucide-react'
 import { api } from '../lib/api'
+import { productLabel } from '../lib/productLabel'
 
 const ACTIONS = [
   {
@@ -71,7 +72,7 @@ export default function EmptyProductModal({ open, product, onClose, onDone }) {
         </div>
 
         <div className="px-6 pb-2 overflow-y-auto flex-1">
-          <p className="text-sm text-plum-500 mb-5">{product.name}</p>
+          <p className="text-sm text-plum-500 mb-5">{productLabel(product)}</p>
 
           <p className="text-xs font-medium text-plum-500 mb-2">How was it, out of 5?</p>
           <div className="flex gap-1.5 mb-5">

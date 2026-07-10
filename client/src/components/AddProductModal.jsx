@@ -21,6 +21,7 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
   const [stepIndex, setStepIndex] = useState(0)
   const [form, setForm] = useState({
     category: defaultCategory || null,
+    brand: '',
     name: '',
     fillLevel: 100,
     timeOfDay: defaultTimeOfDay || null,
@@ -76,6 +77,7 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
     setStepIndex(0)
     setForm({
       category: defaultCategory || null,
+      brand: '',
       name: '',
       fillLevel: 100,
       timeOfDay: defaultTimeOfDay || null,
@@ -93,7 +95,11 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
     setLookupStatus('loading')
     setLookupError('')
     try {
-      const result = await api.post('/ingredients/detect', { name: form.name, category: form.category })
+      const result = await api.post('/ingredients/detect', {
+        name: form.name,
+        brand: form.brand,
+        category: form.category,
+      })
       setLookupResult(result)
       setForm((f) => {
         const existingKeys = new Set(f.ingredients.map((i) => i.key))
@@ -125,6 +131,7 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
     try {
       const { product } = await api.post('/products', {
         name: form.name.trim(),
+        brand: form.brand.trim(),
         category: form.category,
         fillLevel: form.fillLevel,
         timeOfDay: form.timeOfDay,
@@ -186,12 +193,22 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
           {step === 'name' && (
             <div>
               <h2 className="font-display text-2xl font-semibold mb-1">What's it called?</h2>
-              <p className="text-sm text-plum-500 mb-5">Brand and product name.</p>
+              <p className="text-sm text-plum-500 mb-5">
+                Splitting brand and product name helps ingredient lookup find the exact product.
+              </p>
+              <label className="text-xs font-medium text-plum-500 mb-1 block">Brand</label>
               <input
                 autoFocus
+                value={form.brand}
+                onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
+                placeholder="e.g. Rhode"
+                className="w-full rounded-xl border border-plum-200 bg-white px-3.5 py-2.5 text-sm mb-3.5 focus:outline-none focus:ring-2 focus:ring-blush-300 focus:border-transparent"
+              />
+              <label className="text-xs font-medium text-plum-500 mb-1 block">Product name</label>
+              <input
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="e.g. CeraVe Foaming Cleanser"
+                placeholder="e.g. Milky Toner"
                 className="w-full rounded-xl border border-plum-200 bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blush-300 focus:border-transparent"
               />
             </div>

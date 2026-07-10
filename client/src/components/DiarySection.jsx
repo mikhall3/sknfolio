@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, X, Sunrise, Moon } from 'lucide-react'
 import { CATEGORY_MAP } from '../data/categories'
+import { productLabel } from '../lib/productLabel'
 import ProductPicker from './ProductPicker'
 
 const ICONS = { AM: Sunrise, PM: Moon }
@@ -26,7 +27,7 @@ export default function DiarySection({ period, logs, availableProducts, onLog, o
               key={logId}
               className="inline-flex items-center gap-1.5 rounded-full bg-white border border-plum-100 pl-3 pr-1.5 py-1.5 text-xs text-plum-800"
             >
-              {product.name}
+              {productLabel(product)}
               <span className="text-plum-300">· {CATEGORY_MAP[product.category]?.label}</span>
               <button
                 onClick={() => onUnlog(logId, product.id)}

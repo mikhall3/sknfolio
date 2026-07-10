@@ -37,6 +37,7 @@ export default function ProductCard({ product, onToggleFavourite, onDelete, onMa
             {Icon && <Icon size={16} strokeWidth={1.75} />}
           </div>
           <div className="min-w-0">
+            {product.brand && <p className="text-[11px] text-plum-400 truncate">{product.brand}</p>}
             <p className="text-sm font-medium text-plum-900 truncate">{product.name}</p>
             <p className="text-xs text-plum-400">{category?.label}</p>
           </div>
