@@ -59,7 +59,7 @@ To deploy:
 
 1. Import this repo (this branch) into your host of choice.
 2. Provision a Postgres database and set `DATABASE_URL` as a secret/env var.
-3. Set `CLIENT_URL` **and** leave `SERVER_URL` unset — both should resolve to your deployed app's public URL once you know it (you may need to deploy once, copy the assigned URL, then set `CLIENT_URL` to it and redeploy/restart).
+3. Leave `CLIENT_URL` and `SERVER_URL` unset — in this single-service setup the server detects its own public URL from each incoming request, so there's nothing to configure. Only set them explicitly if you're running behind a proxy that hides the real host/protocol from the app.
 4. Optionally set `ANTHROPIC_API_KEY` for ingredient detection and `SMTP_*` for real emails (without SMTP, magic links are logged to the server's console).
 5. Run `npm start` (or let the host run it automatically).
 

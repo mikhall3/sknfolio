@@ -21,6 +21,14 @@ app.use(cookieParser())
 
 app.get('/api/health', (req, res) => res.json({ ok: true }))
 
+// Safety net: if an old or malformed magic link ever points at /auth/verify
+// instead of /api/auth/verify (missing the API prefix), forward it rather
+// than 404ing - the token itself is still valid either way.
+app.get('/auth/verify', (req, res) => {
+  const query = req.originalUrl.split('?')[1]
+  res.redirect(`/api/auth/verify${query ? `?${query}` : ''}`)
+})
+
 app.use('/api/auth', authRoutes)
 app.use('/api/products', requireAuth, productRoutes)
 app.use('/api/diary', requireAuth, diaryRoutes)

@@ -3,6 +3,7 @@ import { prisma } from '../db.js'
 import { generateToken } from '../lib/tokens.js'
 import { sendMagicLinkEmail } from '../lib/mailer.js'
 import { COOKIE_NAME, requireAuth } from '../middleware/auth.js'
+import { resolveServerUrl, resolveClientUrl } from '../lib/origin.js'
 
 const router = Router()
 
@@ -31,7 +32,7 @@ router.post('/request-link', async (req, res) => {
     },
   })
 
-  const url = `${process.env.SERVER_URL || `http://localhost:${process.env.PORT || 3001}`}/api/auth/verify?token=${token}`
+  const url = `${resolveServerUrl(req)}/api/auth/verify?token=${token}`
   await sendMagicLinkEmail(email, url)
 
   const devLink = process.env.NODE_ENV === 'production' ? undefined : url
@@ -40,7 +41,7 @@ router.post('/request-link', async (req, res) => {
 
 router.get('/verify', async (req, res) => {
   const token = String(req.query?.token || '')
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173'
+  const clientUrl = resolveClientUrl(req)
 
   const magicLink = await prisma.magicLink.findUnique({ where: { token } })
   if (!magicLink || magicLink.usedAt || magicLink.expiresAt < new Date()) {
