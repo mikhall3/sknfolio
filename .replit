@@ -1,6 +1,7 @@
 entrypoint = "server/src/index.js"
 run = "npm start"
 hidden = [".config", "node_modules", "client/node_modules", "server/node_modules", "client/dist"]
+modules = ["nodejs-20"]
 
 [nix]
 channel = "stable-24_05"
@@ -8,3 +9,37 @@ channel = "stable-24_05"
 [[ports]]
 localPort = 3001
 externalPort = 80
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
+exposeLocalhost = true
+
+[[ports]]
+localPort = 5173
+externalPort = 5173
+exposeLocalhost = true
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start --prefix server"
+waitForPort = 3001
+
+[workflows.workflow.metadata]
+outputType = "webview"
