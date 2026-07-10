@@ -187,6 +187,7 @@ export default function Library() {
         open={Boolean(addModalConfig)}
         defaultCategory={addModalConfig?.defaultCategory}
         defaultTimeOfDay={addModalConfig?.defaultTimeOfDay}
+        existingProducts={activeProducts}
         onClose={() => setAddModalConfig(null)}
         onCreated={(product) => {
           setProducts((prev) => [...(prev || []), product])

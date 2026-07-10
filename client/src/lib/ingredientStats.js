@@ -30,6 +30,29 @@ export function findConflicts(products) {
   return pairs
 }
 
+// Checks a set of ingredient keys (e.g. from a product being added) against
+// what's already active on the shelf, so a conflict can be flagged before the
+// product is even saved - not just once both are logged on the same day.
+export function findShelfConflicts(newKeys, existingProducts) {
+  const newStrong = [...new Set(newKeys)].filter((k) => STRONG_ACTIVES.has(k))
+  if (newStrong.length === 0) return []
+
+  const results = []
+  for (const product of existingProducts || []) {
+    if (product.status !== 'ACTIVE') continue
+    const existingKeys = [
+      ...new Set((product.ingredientTags || []).map((t) => t.key).filter((k) => STRONG_ACTIVES.has(k))),
+    ].filter((k) => !newStrong.includes(k))
+    if (existingKeys.length === 0) continue
+    results.push({
+      product,
+      newIngredients: newStrong.map((k) => STRONG_ACTIVES.get(k)),
+      existingIngredients: existingKeys.map((k) => STRONG_ACTIVES.get(k)),
+    })
+  }
+  return results
+}
+
 export function commonIngredients(products) {
   const counts = new Map()
   for (const product of products) {

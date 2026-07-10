@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { prisma } from '../db.js'
-import { Category, TimeOfDay, IngredientConfidence } from '../generated/prisma/index.js'
+import { Category, TimeOfDay, IngredientConfidence, SizeType } from '../generated/prisma/index.js'
 
 const router = Router()
 
@@ -40,13 +40,18 @@ router.get('/', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
-  const { brand, name, category, fillLevel, timeOfDay, favourite, ingredients } = req.body || {}
+  const { brand, name, category, fillLevel, sizeType, timeOfDay, favourite, ingredients } = req.body || {}
 
   const cleanName = String(name || '').trim()
   if (!cleanName) return res.status(400).json({ error: 'Name is required.' })
   const cleanBrand = brand ? String(brand).trim() : null
   if (!Category[category]) return res.status(400).json({ error: 'Invalid category.' })
-  if (!VALID_FILL_LEVELS.includes(fillLevel)) return res.status(400).json({ error: 'Invalid fill level.' })
+  if (sizeType !== undefined && sizeType !== null && !SizeType[sizeType]) {
+    return res.status(400).json({ error: 'Invalid size type.' })
+  }
+  // Sample/one-time-use items are always fresh when added - fill level doesn't apply.
+  const cleanFillLevel = sizeType ? 100 : fillLevel
+  if (!VALID_FILL_LEVELS.includes(cleanFillLevel)) return res.status(400).json({ error: 'Invalid fill level.' })
   const tod = TimeOfDay[timeOfDay] ? timeOfDay : 'BOTH'
   const cleanIngredients = validateIngredients(ingredients)
   if (cleanIngredients === null) return res.status(400).json({ error: 'Invalid ingredients.' })
@@ -57,7 +62,8 @@ router.post('/', async (req, res) => {
       brand: cleanBrand || null,
       name: cleanName,
       category,
-      fillLevel,
+      fillLevel: cleanFillLevel,
+      sizeType: sizeType || null,
       timeOfDay: tod,
       favourite: Boolean(favourite),
       ingredientTags: { create: cleanIngredients },
@@ -81,7 +87,7 @@ router.patch('/:id', async (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Product not found.' })
 
   const data = {}
-  const { brand, name, category, fillLevel, timeOfDay, favourite } = req.body || {}
+  const { brand, name, category, fillLevel, sizeType, timeOfDay, favourite } = req.body || {}
 
   if (brand !== undefined) data.brand = brand ? String(brand).trim() || null : null
   if (name !== undefined) {
@@ -93,7 +99,12 @@ router.patch('/:id', async (req, res) => {
     if (!Category[category]) return res.status(400).json({ error: 'Invalid category.' })
     data.category = category
   }
-  if (fillLevel !== undefined) {
+  if (sizeType !== undefined) {
+    if (sizeType !== null && !SizeType[sizeType]) return res.status(400).json({ error: 'Invalid size type.' })
+    data.sizeType = sizeType || null
+    if (sizeType) data.fillLevel = 100
+  }
+  if (fillLevel !== undefined && sizeType === undefined) {
     if (!VALID_FILL_LEVELS.includes(fillLevel)) return res.status(400).json({ error: 'Invalid fill level.' })
     data.fillLevel = fillLevel
   }
@@ -155,6 +166,7 @@ router.post('/:id/empty', async (req, res) => {
         name: existing.name,
         category: existing.category,
         fillLevel: 100,
+        sizeType: existing.sizeType,
         timeOfDay: existing.timeOfDay,
         favourite: existing.favourite,
         reboughtFromId: existing.id,

@@ -164,6 +164,7 @@ export default function Diary() {
         key={modalConfig ? JSON.stringify(modalConfig) : 'closed'}
         open={Boolean(modalConfig)}
         defaultTimeOfDay={modalConfig?.defaultTimeOfDay}
+        existingProducts={activeProducts}
         onClose={() => setModalConfig(null)}
         onCreated={async (product) => {
           setActiveProducts((prev) => [...prev, product])

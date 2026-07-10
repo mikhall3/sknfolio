@@ -46,6 +46,7 @@ model Session {
 enum Category {
   CLEANSER
   CLEANSING_BALM_OIL
+  MICELLAR_WATER
   EXFOLIANT
   TONER
   ESSENCE
@@ -60,7 +61,13 @@ enum Category {
   LIP_TREATMENT
   FACE_MASK
   SHEET_MASK
+  MAKEUP_WIPE
   EYE_PATCHES
+}
+
+enum SizeType {
+  SAMPLE
+  ONE_TIME_USE
 }
 
 enum TimeOfDay {
@@ -90,6 +97,7 @@ model Product {
   dateAdded DateTime      @default(now())
   status    ProductStatus @default(ACTIVE)
   fillLevel Int           @default(100)
+  sizeType  SizeType?
   favourite Boolean       @default(false)
   timeOfDay TimeOfDay     @default(BOTH)
 

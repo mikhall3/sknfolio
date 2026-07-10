@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { X, ChevronLeft, ChevronRight, Check, Loader2, Plus, Sparkles, AlertTriangle } from 'lucide-react'
-import { CATEGORIES, FILL_LEVELS, TIME_OF_DAY_OPTIONS } from '../data/categories'
+import { CATEGORIES, FILL_LEVELS, SIZE_TYPES, TIME_OF_DAY_OPTIONS } from '../data/categories'
 import { CURATED_INGREDIENTS, slugify } from '../data/ingredients'
+import { findShelfConflicts } from '../lib/ingredientStats'
+import { productLabel } from '../lib/productLabel'
 import { api } from '../lib/api'
 
 const CONFIDENCE_STYLE = {
@@ -17,13 +19,21 @@ const CONFIDENCE_LABEL = {
 
 const STEPS = ['category', 'name', 'fill', 'timing', 'regular', 'ingredients']
 
-export default function AddProductModal({ open, onClose, onCreated, defaultTimeOfDay, defaultCategory }) {
+export default function AddProductModal({
+  open,
+  onClose,
+  onCreated,
+  defaultTimeOfDay,
+  defaultCategory,
+  existingProducts,
+}) {
   const [stepIndex, setStepIndex] = useState(0)
   const [form, setForm] = useState({
     category: defaultCategory || null,
     brand: '',
     name: '',
     fillLevel: 100,
+    sizeType: null,
     timeOfDay: defaultTimeOfDay || null,
     favourite: null,
     ingredients: [],
@@ -34,6 +44,11 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
   const [lookupStatus, setLookupStatus] = useState('idle')
   const [lookupResult, setLookupResult] = useState(null)
   const [lookupError, setLookupError] = useState('')
+
+  const shelfConflicts = useMemo(
+    () => findShelfConflicts(form.ingredients.map((i) => i.key), existingProducts),
+    [form.ingredients, existingProducts]
+  )
 
   if (!open) return null
 
@@ -80,6 +95,7 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
       brand: '',
       name: '',
       fillLevel: 100,
+      sizeType: null,
       timeOfDay: defaultTimeOfDay || null,
       favourite: null,
       ingredients: [],
@@ -134,6 +150,7 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
         brand: form.brand.trim(),
         category: form.category,
         fillLevel: form.fillLevel,
+        sizeType: form.sizeType,
         timeOfDay: form.timeOfDay,
         favourite: form.favourite,
         ingredients: form.ingredients,
@@ -220,13 +237,29 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
               <p className="text-sm text-plum-500 mb-5">
                 If it's already open, this keeps "time to empty" accurate.
               </p>
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-2.5 mb-2.5">
                 {FILL_LEVELS.map(({ value, label }) => (
                   <button
                     key={value}
-                    onClick={() => setForm((f) => ({ ...f, fillLevel: value }))}
+                    onClick={() => setForm((f) => ({ ...f, fillLevel: value, sizeType: null }))}
                     className={`rounded-2xl border px-4 py-3 text-sm font-medium transition-colors ${
-                      form.fillLevel === value
+                      form.fillLevel === value && !form.sizeType
+                        ? 'border-blush-400 bg-blush-50 text-blush-700'
+                        : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-plum-400 mb-2">Or, if it's not a regular full-size product:</p>
+              <div className="grid grid-cols-2 gap-2.5">
+                {SIZE_TYPES.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setForm((f) => ({ ...f, sizeType: value, fillLevel: 100 }))}
+                    className={`rounded-2xl border px-4 py-3 text-sm font-medium transition-colors ${
+                      form.sizeType === value
                         ? 'border-blush-400 bg-blush-50 text-blush-700'
                         : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
                     }`}
@@ -313,6 +346,24 @@ export default function AddProductModal({ open, onClose, onCreated, defaultTimeO
                 <p className="text-xs text-blush-700 bg-blush-50 border border-blush-200 rounded-xl px-3 py-2 mb-3">
                   {lookupError}
                 </p>
+              )}
+
+              {shelfConflicts.length > 0 && (
+                <div className="rounded-xl border border-blush-200 bg-blush-50 p-3 mb-3 text-xs text-blush-700">
+                  <p className="font-medium mb-1.5 flex items-center gap-1.5">
+                    <AlertTriangle size={12} />
+                    Might not pair well with what's already on your shelf
+                  </p>
+                  <div className="space-y-1.5">
+                    {shelfConflicts.map((c) => (
+                      <p key={c.product.id} className="leading-relaxed">
+                        <span className="font-medium">{productLabel(c.product)}</span> has{' '}
+                        {c.existingIngredients.map((i) => i.label).join(', ')} — layering{' '}
+                        {c.newIngredients.map((i) => i.label).join(', ')} on top can raise the risk of irritation.
+                      </p>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {lookupResult && (

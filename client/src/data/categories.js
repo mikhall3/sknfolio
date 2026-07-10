@@ -16,11 +16,14 @@ import {
   Square,
   Layers,
   CircleDot,
+  Beaker,
+  Circle,
 } from 'lucide-react'
 
 export const CATEGORIES = [
   { value: 'CLEANSER', label: 'Cleanser', icon: Droplet },
   { value: 'CLEANSING_BALM_OIL', label: 'Cleansing Balm / Oil', icon: Droplets },
+  { value: 'MICELLAR_WATER', label: 'Micellar Water', icon: Beaker },
   { value: 'EXFOLIANT', label: 'Exfoliant', icon: Sparkles },
   { value: 'TONER', label: 'Toner', icon: Waves },
   { value: 'ESSENCE', label: 'Essence', icon: Gem },
@@ -35,6 +38,7 @@ export const CATEGORIES = [
   { value: 'LIP_TREATMENT', label: 'Lip Treatment / Mask', icon: Smile },
   { value: 'FACE_MASK', label: 'Face Mask', icon: Square },
   { value: 'SHEET_MASK', label: 'Sheet Mask', icon: Layers },
+  { value: 'MAKEUP_WIPE', label: 'Makeup Wipe', icon: Circle },
   { value: 'EYE_PATCHES', label: 'Eye Patches', icon: CircleDot },
 ]
 
@@ -45,6 +49,11 @@ export const FILL_LEVELS = [
   { value: 75, label: '75%' },
   { value: 50, label: '50%' },
   { value: 25, label: '25%' },
+]
+
+export const SIZE_TYPES = [
+  { value: 'ONE_TIME_USE', label: 'One-time use' },
+  { value: 'SAMPLE', label: 'Sample size' },
 ]
 
 export const TIME_OF_DAY_OPTIONS = [
