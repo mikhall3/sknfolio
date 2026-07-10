@@ -51,6 +51,18 @@ npm run dev              # http://localhost:5173
 
 The Vite dev server proxies `/api/*` to `http://localhost:3001`.
 
+## Deploying (e.g. Replit)
+
+The root `package.json` and `.replit` set this up to run as a single service: `npm start` installs both sub-projects, runs migrations, builds the client, and starts the server, which serves the built frontend itself alongside the API on one origin/port. Locally you still run `client` and `server` as two separate dev processes (above) — the unified path only kicks in when `client/dist` exists.
+
+To deploy:
+
+1. Import this repo (this branch) into your host of choice.
+2. Provision a Postgres database and set `DATABASE_URL` as a secret/env var.
+3. Set `CLIENT_URL` **and** leave `SERVER_URL` unset — both should resolve to your deployed app's public URL once you know it (you may need to deploy once, copy the assigned URL, then set `CLIENT_URL` to it and redeploy/restart).
+4. Optionally set `ANTHROPIC_API_KEY` for ingredient detection and `SMTP_*` for real emails (without SMTP, magic links are logged to the server's console).
+5. Run `npm start` (or let the host run it automatically).
+
 ## Data & privacy
 
 Each person signs in with their own email and gets a private account — there's no shared data between users. Everything lives in Postgres on the server, so it syncs across every device you sign into, unlike a purely local/offline version of this app.

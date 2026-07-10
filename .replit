@@ -1,0 +1,10 @@
+entrypoint = "server/src/index.js"
+run = "npm start"
+hidden = [".config", "node_modules", "client/node_modules", "server/node_modules", "client/dist"]
+
+[nix]
+channel = "stable-24_05"
+
+[[ports]]
+localPort = 3001
+externalPort = 80

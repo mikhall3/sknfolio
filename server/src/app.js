@@ -1,6 +1,9 @@
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import fs from 'node:fs'
 import authRoutes from './routes/auth.js'
 import productRoutes from './routes/products.js'
 import diaryRoutes from './routes/diary.js'
@@ -25,6 +28,19 @@ app.use('/api/ingredients', requireAuth, ingredientRoutes)
 app.use('/api/insights', requireAuth, insightsRoutes)
 app.use('/api/checkins', requireAuth, checkinRoutes)
 app.use('/api/abnormalities', requireAuth, abnormalityRoutes)
+
+// In production (a single deployed service, e.g. Replit) the server also
+// serves the built client, so the whole app lives behind one origin/port.
+// In local dev the client runs its own Vite server instead, so this is a
+// no-op there since client/dist won't exist.
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const clientDist = path.join(__dirname, '../../client/dist')
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist))
+  app.get(/^(?!\/api).*/, (req, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'))
+  })
+}
 
 app.use((err, req, res, next) => {
   console.error(err)
