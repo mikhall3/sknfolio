@@ -11,10 +11,21 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const SESSION_TTL_MS = (Number(process.env.SESSION_TTL_DAYS) || 30) * 24 * 60 * 60 * 1000
 const MAGIC_LINK_TTL_MS = (Number(process.env.MAGIC_LINK_TTL_MINUTES) || 15) * 60 * 1000
 
+// While ALLOWED_EMAILS is set, only those addresses may sign in - this keeps
+// the app private during solo testing without touching the login UI itself.
+// Leave it unset (or empty) to open sign-in back up to anyone.
+const ALLOWED_EMAILS = (process.env.ALLOWED_EMAILS || '')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean)
+
 router.post('/request-link', async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase()
   if (!EMAIL_RE.test(email)) {
     return res.status(400).json({ error: 'Enter a valid email address.' })
+  }
+  if (ALLOWED_EMAILS.length > 0 && !ALLOWED_EMAILS.includes(email)) {
+    return res.status(403).json({ error: "SKNFOLIO isn't open for new sign-ins yet." })
   }
 
   const user = await prisma.user.upsert({
