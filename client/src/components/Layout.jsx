@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { BookOpen, Library, LogOut, Sparkles, TrendingUp } from 'lucide-react'
+import { BookOpen, Library, LogOut, TrendingUp } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const tabs = [
@@ -15,12 +15,7 @@ export default function Layout() {
     <div className="min-h-screen bg-cream-100 flex flex-col">
       <header className="sticky top-0 z-10 bg-cream-100/90 backdrop-blur-sm border-b border-blush-100">
         <div className="max-w-lg mx-auto flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-1.5">
-            <Sparkles size={16} className="text-blush-500" strokeWidth={1.75} />
-            <span className="font-display text-lg font-semibold tracking-tight text-plum-900">
-              SKNFOLIO
-            </span>
-          </div>
+          <img src="/logo.png" alt="SKNFOLIO" className="h-6" />
           <div className="flex items-center gap-3">
             <span className="text-xs text-plum-400 hidden sm:block">{user?.email}</span>
             <button

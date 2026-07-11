@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Mail, ArrowRight, Loader2, Sparkles } from 'lucide-react'
+import { Mail, ArrowRight, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
@@ -31,10 +31,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-cream-100 px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-1.5 text-blush-500 mb-2">
-            <Sparkles size={18} strokeWidth={1.75} />
-          </div>
-          <h1 className="font-display text-4xl font-semibold text-plum-900">SKNFOLIO</h1>
+          <img src="/logo.png" alt="SKNFOLIO" className="h-12 mx-auto mb-2" />
           <p className="text-plum-500 text-sm mt-1">a little diary, for your face</p>
         </div>
 
