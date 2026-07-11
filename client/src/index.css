@@ -20,16 +20,16 @@
   --font-display: "Unbounded", "system-ui", sans-serif;
   --font-sans: "Unbounded", "system-ui", sans-serif;
 
-  --color-blush-50: #fbf4f4;
-  --color-blush-100: #f4dddd;
-  --color-blush-200: #e6b3b3;
-  --color-blush-300: #d27979;
-  --color-blush-400: #a83838;
-  --color-blush-500: #541c1c;
-  --color-blush-600: #411616;
-  --color-blush-700: #321111;
-  --color-blush-800: #220b0b;
-  --color-blush-900: #130606;
+  --color-blush-50: #fcf2f3;
+  --color-blush-100: #f7d9db;
+  --color-blush-200: #eeaab0;
+  --color-blush-300: #e16b75;
+  --color-blush-400: #ba2632;
+  --color-blush-500: #62141a;
+  --color-blush-600: #480f14;
+  --color-blush-700: #370b0f;
+  --color-blush-800: #26080a;
+  --color-blush-900: #150406;
 
   --color-plum-50: #f7f5f4;
   --color-plum-100: #ede8e7;
