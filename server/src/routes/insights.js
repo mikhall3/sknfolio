@@ -60,16 +60,26 @@ router.get('/', async (req, res) => {
     cursor = addDays(cursor, -1)
   }
 
-  // Weekly check-in status
+  // Weekly check-in status, plus recent history so progress over time is visible,
+  // not just the current week.
   const weekOf = startOfWeek(today)
   const checkin = await prisma.checkin.findUnique({
     where: { userId_weekOf: { userId: req.user.id, weekOf } },
+  })
+  const history = await prisma.checkin.findMany({
+    where: { userId: req.user.id, weekOf: { lt: weekOf } },
+    orderBy: { weekOf: 'desc' },
+    take: 8,
   })
 
   res.json({
     last7Days,
     streak: { count: streakCount, hasLoggedToday },
-    checkin: { weekOf: formatDateOnly(weekOf), current: checkin },
+    checkin: {
+      weekOf: formatDateOnly(weekOf),
+      current: checkin,
+      history: history.map((c) => ({ weekOf: formatDateOnly(c.weekOf), feeling: c.feeling, note: c.note })),
+    },
   })
 })
 

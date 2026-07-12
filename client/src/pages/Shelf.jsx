@@ -13,7 +13,7 @@ import { commonIngredients, pairKey } from '../lib/ingredientStats'
 import { CURATED_INGREDIENTS } from '../data/ingredients'
 import { Check, RotateCcw } from 'lucide-react'
 
-export default function Library() {
+export default function Shelf() {
   const [products, setProducts] = useState(null)
   const [tab, setTab] = useState('active')
   const [addModalConfig, setAddModalConfig] = useState(null)

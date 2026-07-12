@@ -6,6 +6,7 @@ const router = Router()
 
 const logInclude = {
   logs: {
+    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
     include: {
       product: { include: { ingredientTags: true, notes: { orderBy: { date: 'desc' } } } },
     },
@@ -68,15 +69,21 @@ router.post('/:date/prime-favourites', async (req, res) => {
     where: { userId: req.user.id, favourite: true, status: 'ACTIVE' },
   })
 
-  const logsToCreate = []
-  for (const product of favourites) {
-    if (product.timeOfDay === 'AM' || product.timeOfDay === 'BOTH') {
-      logsToCreate.push({ productId: product.id, period: 'AM' })
-    }
-    if (product.timeOfDay === 'PM' || product.timeOfDay === 'BOTH') {
-      logsToCreate.push({ productId: product.id, period: 'PM' })
-    }
+  // Favourites default to the locked-in AM/PM order (nulls last, then insertion order),
+  // so a freshly primed day reflects whatever routine order was last confirmed.
+  const byOrder = (key) => (a, b) => {
+    if (a[key] === b[key]) return a.dateAdded - b.dateAdded
+    if (a[key] == null) return 1
+    if (b[key] == null) return -1
+    return a[key] - b[key]
   }
+  const amFavourites = favourites.filter((p) => p.timeOfDay === 'AM' || p.timeOfDay === 'BOTH').sort(byOrder('amOrder'))
+  const pmFavourites = favourites.filter((p) => p.timeOfDay === 'PM' || p.timeOfDay === 'BOTH').sort(byOrder('pmOrder'))
+
+  const logsToCreate = [
+    ...amFavourites.map((product, i) => ({ productId: product.id, period: 'AM', order: i })),
+    ...pmFavourites.map((product, i) => ({ productId: product.id, period: 'PM', order: i })),
+  ]
 
   const entry = await prisma.diaryEntry.create({
     data: {
@@ -105,14 +112,45 @@ router.post('/:date/log', async (req, res) => {
     create: { userId: req.user.id, date },
   })
 
+  const lastLog = await prisma.diaryProductLog.findFirst({
+    where: { diaryEntryId: entry.id, period },
+    orderBy: { order: 'desc' },
+  })
+  const nextOrder = lastLog ? lastLog.order + 1 : 0
+
   await prisma.diaryProductLog.upsert({
     where: { diaryEntryId_productId_period: { diaryEntryId: entry.id, productId, period } },
     update: {},
-    create: { diaryEntryId: entry.id, productId, period },
+    create: { diaryEntryId: entry.id, productId, period, order: nextOrder },
   })
 
   const full = await prisma.diaryEntry.findUnique({ where: { id: entry.id }, include: logInclude })
   res.status(201).json({ entry: serializeEntry(date, full) })
+})
+
+// Reorders a single day's AM or PM list only - never touches other days or
+// the products' default order, so substituting/reordering one day doesn't
+// ripple into the past or future.
+router.put('/:date/log/reorder', async (req, res) => {
+  const date = parseDateOnly(req.params.date)
+  if (!date) return res.status(400).json({ error: 'Invalid date, expected YYYY-MM-DD.' })
+  const { period, logIds } = req.body || {}
+  if (period !== 'AM' && period !== 'PM') return res.status(400).json({ error: 'Period must be AM or PM.' })
+  if (!Array.isArray(logIds) || logIds.length === 0) return res.status(400).json({ error: 'logIds must be a non-empty array.' })
+
+  const entry = await prisma.diaryEntry.findUnique({ where: { userId_date: { userId: req.user.id, date } } })
+  if (!entry) return res.status(404).json({ error: 'No diary entry for this date.' })
+
+  const logs = await prisma.diaryProductLog.findMany({ where: { diaryEntryId: entry.id, period } })
+  const validIds = new Set(logs.map((l) => l.id))
+  if (logIds.length !== logs.length || !logIds.every((id) => validIds.has(id))) {
+    return res.status(400).json({ error: 'logIds must match the full set of logs for that day and period.' })
+  }
+
+  await prisma.$transaction(logIds.map((id, i) => prisma.diaryProductLog.update({ where: { id }, data: { order: i } })))
+
+  const full = await prisma.diaryEntry.findUnique({ where: { id: entry.id }, include: logInclude })
+  res.json({ entry: serializeEntry(date, full) })
 })
 
 router.delete('/:date/log', async (req, res) => {

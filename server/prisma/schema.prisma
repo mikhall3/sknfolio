@@ -101,6 +101,8 @@ model Product {
   sizeType  SizeType?
   favourite Boolean       @default(false)
   timeOfDay TimeOfDay     @default(BOTH)
+  amOrder   Int?
+  pmOrder   Int?
 
   emptyRating    Int?
   emptyComment   String?
@@ -176,6 +178,7 @@ model DiaryProductLog {
   productId    String
   product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
   period       LogPeriod
+  order        Int        @default(0)
   createdAt    DateTime   @default(now())
 
   @@unique([diaryEntryId, productId, period])

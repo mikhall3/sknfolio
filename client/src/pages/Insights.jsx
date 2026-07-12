@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Flame, Smile, Meh, Frown, Loader2, Plus, Pencil, Trash2 } from 'lucide-react'
+import { Flame, Smile, Meh, Frown, Loader2, Plus, Pencil, Trash2, CalendarCheck, GraduationCap } from 'lucide-react'
 import { api } from '../lib/api'
 import { localDateString, friendlyDate } from '../lib/dates'
 import { FEELING_OPTIONS, ABNORMALITY_TYPES } from '../data/insights'
 import { productLabel } from '../lib/productLabel'
+import { commonIngredients } from '../lib/ingredientStats'
+import { CURATED_INGREDIENTS } from '../data/ingredients'
 import AbnormalityModal from '../components/AbnormalityModal'
 
 const TODAY = localDateString()
+const IS_SUNDAY = new Date().getDay() === 0
 
 const FEELING_ICON = { GREAT: Smile, OKAY: Meh, ROUGH: Frown }
+const FEELING_LABEL = { GREAT: 'Great', OKAY: 'Okay', ROUGH: 'Rough' }
 const ABNORMALITY_LABEL = Object.fromEntries(ABNORMALITY_TYPES.map((t) => [t.value, t.label]))
 
 export default function Insights() {
   const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [abnormalities, setAbnormalities] = useState(null)
+  const [activeProducts, setActiveProducts] = useState(null)
   const [editingCheckin, setEditingCheckin] = useState(false)
   const [feeling, setFeeling] = useState(null)
   const [checkinNote, setCheckinNote] = useState('')
@@ -25,6 +30,7 @@ export default function Insights() {
   useEffect(() => {
     load()
     api.get('/abnormalities').then((res) => setAbnormalities(res.abnormalities))
+    api.get('/products?status=ACTIVE').then((res) => setActiveProducts(res.products))
   }, [])
 
   function load() {
@@ -66,6 +72,12 @@ export default function Insights() {
 
   const showCheckinForm = editingCheckin || !data.checkin.current
 
+  const ingredientByKey = new Map(CURATED_INGREDIENTS.map((i) => [i.key, i]))
+  const educationFacts = commonIngredients(activeProducts || [])
+    .map((ing) => ingredientByKey.get(ing.key))
+    .filter((ing) => ing?.fact)
+    .slice(0, 4)
+
   return (
     <div className="space-y-4">
       <h1 className="font-display text-2xl font-semibold text-plum-900 mb-1">Insights</h1>
@@ -87,6 +99,15 @@ export default function Insights() {
           </p>
         </div>
       </div>
+
+      {IS_SUNDAY && !data.checkin.current && (
+        <div className="rounded-2xl border border-blush-200 bg-blush-50 p-4 flex items-start gap-2.5">
+          <CalendarCheck size={16} className="text-blush-600 mt-0.5 shrink-0" strokeWidth={1.75} />
+          <p className="text-sm text-blush-700">
+            It's Sunday — a good moment to check in on how your skin's been this week.
+          </p>
+        </div>
+      )}
 
       <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
         <div className="flex items-center justify-between mb-2">
@@ -153,6 +174,29 @@ export default function Insights() {
         )}
       </div>
 
+      {data.checkin.history.length > 0 && (
+        <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
+          <h2 className="font-display text-lg font-semibold text-plum-900 mb-3">Your progress</h2>
+          <div className="space-y-2.5">
+            {data.checkin.history.map((c) => {
+              const Icon = FEELING_ICON[c.feeling]
+              return (
+                <div key={c.weekOf} className="flex items-start gap-2.5">
+                  <Icon size={16} className="text-blush-500 mt-0.5 shrink-0" strokeWidth={1.75} />
+                  <div className="min-w-0">
+                    <p className="text-sm text-plum-800">
+                      <span className="font-medium">{FEELING_LABEL[c.feeling]}</span>{' '}
+                      <span className="text-plum-400 text-xs">· week of {friendlyDate(c.weekOf)}</span>
+                    </p>
+                    {c.note && <p className="text-xs text-plum-500 mt-0.5">{c.note}</p>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
         <h2 className="font-display text-lg font-semibold text-plum-900 mb-3">Last 7 days</h2>
         <div className="space-y-3">
@@ -189,6 +233,23 @@ export default function Insights() {
           })}
         </div>
       </div>
+
+      {educationFacts.length > 0 && (
+        <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
+          <div className="flex items-center gap-1.5 mb-3">
+            <GraduationCap size={16} className="text-blush-500" strokeWidth={1.75} />
+            <h2 className="font-display text-lg font-semibold text-plum-900">Know your ingredients</h2>
+          </div>
+          <div className="space-y-3">
+            {educationFacts.map((ing) => (
+              <div key={ing.key}>
+                <p className="text-sm font-medium text-plum-800">{ing.label}</p>
+                <p className="text-xs text-plum-500 leading-relaxed">{ing.fact}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">

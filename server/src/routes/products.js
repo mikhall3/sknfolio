@@ -73,6 +73,26 @@ router.post('/', async (req, res) => {
   res.status(201).json({ product })
 })
 
+// Locks in a day's product sequence as the new default AM/PM order, so future
+// days start with it - today's and past days' already-stored log order is untouched.
+router.post('/reorder', async (req, res) => {
+  const { period, productIds } = req.body || {}
+  if (period !== 'AM' && period !== 'PM') return res.status(400).json({ error: 'Period must be AM or PM.' })
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    return res.status(400).json({ error: 'productIds must be a non-empty array.' })
+  }
+
+  const owned = await prisma.product.findMany({ where: { id: { in: productIds }, userId: req.user.id } })
+  if (owned.length !== productIds.length) return res.status(404).json({ error: 'One or more products not found.' })
+
+  const field = period === 'AM' ? 'amOrder' : 'pmOrder'
+  await prisma.$transaction(
+    productIds.map((id, i) => prisma.product.update({ where: { id }, data: { [field]: i } }))
+  )
+
+  res.status(204).end()
+})
+
 router.get('/:id', async (req, res) => {
   const product = await prisma.product.findFirst({
     where: { id: req.params.id, userId: req.user.id },

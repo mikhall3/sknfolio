@@ -4,7 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Diary from './pages/Diary'
-import Library from './pages/Library'
+import Shelf from './pages/Shelf'
 import Insights from './pages/Insights'
 
 export default function App() {
@@ -16,7 +16,8 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/diary" element={<Diary />} />
-              <Route path="/library" element={<Library />} />
+              <Route path="/shelf" element={<Shelf />} />
+              <Route path="/library" element={<Navigate to="/shelf" replace />} />
               <Route path="/insights" element={<Insights />} />
               <Route path="/" element={<Navigate to="/diary" replace />} />
             </Route>

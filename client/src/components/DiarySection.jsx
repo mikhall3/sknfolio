@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, X, Sunrise, Moon } from 'lucide-react'
+import { Plus, X, Sunrise, Moon, ChevronUp, ChevronDown, Lock, Check } from 'lucide-react'
 import { CATEGORY_MAP } from '../data/categories'
 import { productLabel } from '../lib/productLabel'
 import ProductPicker from './ProductPicker'
@@ -7,9 +7,34 @@ import ProductPicker from './ProductPicker'
 const ICONS = { AM: Sunrise, PM: Moon }
 const TITLES = { AM: 'Morning', PM: 'Evening' }
 
-export default function DiarySection({ period, logs, availableProducts, onLog, onUnlog, onNew, onOpenDetail }) {
+export default function DiarySection({
+  period,
+  logs,
+  availableProducts,
+  onLog,
+  onUnlog,
+  onNew,
+  onOpenDetail,
+  onReorder,
+  onLockIn,
+}) {
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [locked, setLocked] = useState(false)
   const Icon = ICONS[period]
+
+  function move(index, direction) {
+    const next = index + direction
+    if (next < 0 || next >= logs.length) return
+    const reordered = [...logs]
+    ;[reordered[index], reordered[next]] = [reordered[next], reordered[index]]
+    setLocked(false)
+    onReorder(reordered.map((l) => l.logId))
+  }
+
+  async function lockIn() {
+    await onLockIn(logs.map((l) => l.product.id))
+    setLocked(true)
+  }
 
   return (
     <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
@@ -21,36 +46,82 @@ export default function DiarySection({ period, logs, availableProducts, onLog, o
       {logs.length === 0 ? (
         <p className="text-xs text-plum-300 mb-3">Nothing logged yet.</p>
       ) : (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {logs.map(({ logId, product }) => (
-            <span
+        <div className="space-y-1.5 mb-3">
+          {logs.map(({ logId, product }, index) => (
+            <div
               key={logId}
               onClick={() => onOpenDetail(product)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-white border border-plum-100 pl-3 pr-1.5 py-1.5 text-xs text-plum-800 cursor-pointer hover:border-blush-200 transition-colors"
+              className="flex items-center gap-2 rounded-xl bg-white border border-plum-100 pl-3 pr-1.5 py-1.5 text-xs text-plum-800 cursor-pointer hover:border-blush-200 transition-colors"
             >
-              {productLabel(product)}
-              <span className="text-plum-300">· {CATEGORY_MAP[product.category]?.label}</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onUnlog(logId, product.id)
-                }}
-                className="text-plum-300 hover:text-blush-600 ml-0.5"
-                title="Remove from today"
-              >
-                <X size={12} />
-              </button>
-            </span>
+              <span className="text-plum-300 font-medium w-4 shrink-0">{index + 1}</span>
+              <span className="flex-1 min-w-0 truncate">
+                {productLabel(product)} <span className="text-plum-300">· {CATEGORY_MAP[product.category]?.label}</span>
+              </span>
+              <div className="flex items-center shrink-0">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    move(index, -1)
+                  }}
+                  disabled={index === 0}
+                  className="text-plum-300 hover:text-blush-600 disabled:opacity-20 disabled:hover:text-plum-300 p-0.5"
+                  title="Move earlier"
+                >
+                  <ChevronUp size={13} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    move(index, 1)
+                  }}
+                  disabled={index === logs.length - 1}
+                  className="text-plum-300 hover:text-blush-600 disabled:opacity-20 disabled:hover:text-plum-300 p-0.5"
+                  title="Move later"
+                >
+                  <ChevronDown size={13} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onUnlog(logId, product.id)
+                  }}
+                  className="text-plum-300 hover:text-blush-600 ml-1"
+                  title="Remove from today"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       )}
 
-      <button
-        onClick={() => setPickerOpen((v) => !v)}
-        className="flex items-center gap-1 text-xs font-medium text-blush-600 hover:text-blush-700"
-      >
-        <Plus size={13} /> Log something
-      </button>
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => setPickerOpen((v) => !v)}
+          className="flex items-center gap-1 text-xs font-medium text-blush-600 hover:text-blush-700"
+        >
+          <Plus size={13} /> Log something
+        </button>
+
+        {logs.length > 1 && (
+          <button
+            onClick={lockIn}
+            className="flex items-center gap-1 text-[11px] font-medium text-plum-400 hover:text-blush-600 transition-colors"
+            title="Use this order as the default for future days"
+          >
+            {locked ? (
+              <>
+                <Check size={12} /> Locked in
+              </>
+            ) : (
+              <>
+                <Lock size={12} /> Lock in this order
+              </>
+            )}
+          </button>
+        )}
+      </div>
 
       {pickerOpen && (
         <ProductPicker

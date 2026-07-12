@@ -85,6 +85,24 @@ export default function Diary() {
     }
   }
 
+  async function handleReorder(period, logIds) {
+    const key = period === 'AM' ? 'am' : 'pm'
+    setEntry((prev) => {
+      if (!prev) return prev
+      const byId = new Map(prev[key].map((l) => [l.logId, l]))
+      return { ...prev, [key]: logIds.map((id) => byId.get(id)) }
+    })
+    try {
+      await api.put(`/diary/${dateStr}/log/reorder`, { period, logIds })
+    } catch {
+      refreshEntry()
+    }
+  }
+
+  async function handleLockIn(period, productIds) {
+    await api.post('/products/reorder', { period, productIds })
+  }
+
   function handleNoteChange(value) {
     setNote(value)
     clearTimeout(noteTimer.current)
@@ -162,6 +180,7 @@ export default function Diary() {
       ) : (
         <div className="space-y-4">
           <DiarySection
+            key={`am-${dateStr}`}
             period="AM"
             logs={entry.am}
             availableProducts={availableFor('AM')}
@@ -169,8 +188,11 @@ export default function Diary() {
             onUnlog={(logId, productId) => handleUnlog('AM', logId, productId)}
             onNew={() => setModalConfig({ defaultTimeOfDay: 'AM' })}
             onOpenDetail={setDetailProduct}
+            onReorder={(logIds) => handleReorder('AM', logIds)}
+            onLockIn={(productIds) => handleLockIn('AM', productIds)}
           />
           <DiarySection
+            key={`pm-${dateStr}`}
             period="PM"
             logs={entry.pm}
             availableProducts={availableFor('PM')}
@@ -178,6 +200,8 @@ export default function Diary() {
             onUnlog={(logId, productId) => handleUnlog('PM', logId, productId)}
             onNew={() => setModalConfig({ defaultTimeOfDay: 'PM' })}
             onOpenDetail={setDetailProduct}
+            onReorder={(logIds) => handleReorder('PM', logIds)}
+            onLockIn={(productIds) => handleLockIn('PM', productIds)}
           />
 
           <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
