@@ -74,7 +74,10 @@ export default function Insights() {
 
   const ingredientByKey = new Map(CURATED_INGREDIENTS.map((i) => [i.key, i]))
   const educationFacts = commonIngredients(activeProducts || [])
-    .map((ing) => ingredientByKey.get(ing.key))
+    .map((usage) => {
+      const curated = ingredientByKey.get(usage.key)
+      return curated ? { ...curated, products: usage.products } : null
+    })
     .filter((ing) => ing?.fact)
     .slice(0, 4)
 
@@ -245,6 +248,9 @@ export default function Insights() {
               <div key={ing.key}>
                 <p className="text-sm font-medium text-plum-800">{ing.label}</p>
                 <p className="text-xs text-plum-500 leading-relaxed">{ing.fact}</p>
+                <p className="text-[11px] text-plum-300 mt-1">
+                  Appears in: {ing.products.map(productLabel).join(', ')}
+                </p>
               </div>
             ))}
           </div>

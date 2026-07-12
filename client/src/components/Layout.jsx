@@ -1,10 +1,11 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { BookOpen, Library, LogOut, TrendingUp } from 'lucide-react'
+import { BookOpen, LogOut, TrendingUp } from 'lucide-react'
+import ShelfIcon from './ShelfIcon'
 import { useAuth } from '../context/AuthContext'
 
 const tabs = [
   { to: '/diary', label: 'Diary', icon: BookOpen },
-  { to: '/shelf', label: 'Shelf', icon: Library },
+  { to: '/shelf', label: 'Shelf', icon: ShelfIcon },
   { to: '/insights', label: 'Insights', icon: TrendingUp },
 ]
 

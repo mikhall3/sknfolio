@@ -64,8 +64,9 @@ export function commonIngredients(products) {
   for (const product of products) {
     if (product.status !== 'ACTIVE') continue
     for (const tag of product.ingredientTags || []) {
-      const entry = counts.get(tag.key) || { key: tag.key, label: tag.label, count: 0 }
+      const entry = counts.get(tag.key) || { key: tag.key, label: tag.label, count: 0, products: [] }
       entry.count += 1
+      entry.products.push(product)
       counts.set(tag.key, entry)
     }
   }
