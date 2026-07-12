@@ -4,6 +4,8 @@ import { api } from '../lib/api'
 import { localDateString, addDays, friendlyDate } from '../lib/dates'
 import DiarySection from '../components/DiarySection'
 import AddProductModal from '../components/AddProductModal'
+import EmptyProductModal from '../components/EmptyProductModal'
+import ProductDetailModal from '../components/ProductDetailModal'
 import ConflictBanner from '../components/ConflictBanner'
 import AbnormalityModal from '../components/AbnormalityModal'
 import { logFavouriteToday } from '../lib/diaryFavourites'
@@ -17,6 +19,8 @@ export default function Diary() {
   const [note, setNote] = useState('')
   const [modalConfig, setModalConfig] = useState(null)
   const [trackingOpen, setTrackingOpen] = useState(false)
+  const [detailProduct, setDetailProduct] = useState(null)
+  const [emptyingProduct, setEmptyingProduct] = useState(null)
   const noteTimer = useRef(null)
 
   useEffect(() => {
@@ -90,6 +94,26 @@ export default function Diary() {
     )
   }
 
+  function handleProductUpdated(product) {
+    setActiveProducts((prev) => {
+      const others = prev.filter((p) => p.id !== product.id)
+      return product.status === 'ACTIVE' ? [...others, product] : others
+    })
+    refreshEntry()
+  }
+
+  function handleEmptyDone({ action, product, rebought }) {
+    setActiveProducts((prev) => prev.filter((p) => p.id !== product.id))
+    setEmptyingProduct(null)
+    if (action === 'rebuy' && rebought) {
+      setActiveProducts((prev) => [...prev, rebought])
+      logFavouriteToday(rebought).then(refreshEntry)
+    }
+    if (action === 'replace') {
+      setModalConfig({ defaultCategory: product.category, defaultTimeOfDay: product.timeOfDay })
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
@@ -131,6 +155,7 @@ export default function Diary() {
             onLog={(productId) => handleLog('AM', productId)}
             onUnlog={(logId, productId) => handleUnlog('AM', logId, productId)}
             onNew={() => setModalConfig({ defaultTimeOfDay: 'AM' })}
+            onOpenDetail={setDetailProduct}
           />
           <DiarySection
             period="PM"
@@ -139,6 +164,7 @@ export default function Diary() {
             onLog={(productId) => handleLog('PM', productId)}
             onUnlog={(logId, productId) => handleUnlog('PM', logId, productId)}
             onNew={() => setModalConfig({ defaultTimeOfDay: 'PM' })}
+            onOpenDetail={setDetailProduct}
           />
 
           <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
@@ -181,6 +207,31 @@ export default function Diary() {
         onClose={() => setTrackingOpen(false)}
         onLogged={() => {}}
       />
+
+      <EmptyProductModal
+        open={Boolean(emptyingProduct)}
+        product={emptyingProduct}
+        onClose={() => setEmptyingProduct(null)}
+        onDone={handleEmptyDone}
+      />
+
+      {detailProduct && (
+        <ProductDetailModal
+          key={detailProduct.id}
+          product={detailProduct}
+          onClose={() => setDetailProduct(null)}
+          onUpdated={handleProductUpdated}
+          onMarkEmpty={(product) => {
+            setDetailProduct(null)
+            setEmptyingProduct(product)
+          }}
+          onDeleted={(id) => {
+            setDetailProduct(null)
+            setActiveProducts((prev) => prev.filter((p) => p.id !== id))
+            refreshEntry()
+          }}
+        />
+      )}
     </div>
   )
 }

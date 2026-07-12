@@ -102,12 +102,13 @@ router.patch('/:id', async (req, res) => {
   if (sizeType !== undefined) {
     if (sizeType !== null && !SizeType[sizeType]) return res.status(400).json({ error: 'Invalid size type.' })
     data.sizeType = sizeType || null
-    if (sizeType) data.fillLevel = 100
   }
-  if (fillLevel !== undefined && sizeType === undefined) {
+  if (fillLevel !== undefined) {
     if (!VALID_FILL_LEVELS.includes(fillLevel)) return res.status(400).json({ error: 'Invalid fill level.' })
     data.fillLevel = fillLevel
   }
+  // Sample/one-time-use items are always fresh - fill level doesn't apply to them.
+  if (data.sizeType) data.fillLevel = 100
   if (timeOfDay !== undefined) {
     if (!TimeOfDay[timeOfDay]) return res.status(400).json({ error: 'Invalid time of day.' })
     data.timeOfDay = timeOfDay
@@ -190,6 +191,32 @@ router.delete('/:id', async (req, res) => {
   const existing = await prisma.product.findFirst({ where: { id: req.params.id, userId: req.user.id } })
   if (!existing) return res.status(404).json({ error: 'Product not found.' })
   await prisma.product.delete({ where: { id: existing.id } })
+  res.status(204).end()
+})
+
+router.post('/:id/ingredients', async (req, res) => {
+  const existing = await prisma.product.findFirst({ where: { id: req.params.id, userId: req.user.id } })
+  if (!existing) return res.status(404).json({ error: 'Product not found.' })
+
+  const key = String(req.body?.key || '').trim()
+  const label = String(req.body?.label || '').trim()
+  if (!key || !label) return res.status(400).json({ error: 'Ingredient key and label are required.' })
+  const confidence = req.body?.confidence && IngredientConfidence[req.body.confidence] ? req.body.confidence : null
+  const source = req.body?.source === 'ai' ? 'ai' : 'manual'
+
+  const already = await prisma.productIngredient.findFirst({ where: { productId: existing.id, key } })
+  if (already) return res.status(409).json({ error: 'That ingredient is already tagged.' })
+
+  const tag = await prisma.productIngredient.create({
+    data: { productId: existing.id, key, label, confidence, source },
+  })
+  res.status(201).json({ ingredientTag: tag })
+})
+
+router.delete('/:id/ingredients/:tagId', async (req, res) => {
+  const existing = await prisma.product.findFirst({ where: { id: req.params.id, userId: req.user.id } })
+  if (!existing) return res.status(404).json({ error: 'Product not found.' })
+  await prisma.productIngredient.deleteMany({ where: { id: req.params.tagId, productId: existing.id } })
   res.status(204).end()
 })
 

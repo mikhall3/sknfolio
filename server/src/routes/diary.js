@@ -7,7 +7,7 @@ const router = Router()
 const logInclude = {
   logs: {
     include: {
-      product: { include: { ingredientTags: true } },
+      product: { include: { ingredientTags: true, notes: { orderBy: { date: 'desc' } } } },
     },
   },
 }

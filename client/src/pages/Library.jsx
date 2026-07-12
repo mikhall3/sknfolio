@@ -5,6 +5,7 @@ import { CATEGORY_MAP } from '../data/categories'
 import ProductCard from '../components/ProductCard'
 import AddProductModal from '../components/AddProductModal'
 import EmptyProductModal from '../components/EmptyProductModal'
+import ProductDetailModal from '../components/ProductDetailModal'
 import ConflictBanner from '../components/ConflictBanner'
 import LogTodayPrompt from '../components/LogTodayPrompt'
 import { logFavouriteToday } from '../lib/diaryFavourites'
@@ -16,6 +17,7 @@ export default function Library() {
   const [addModalConfig, setAddModalConfig] = useState(null)
   const [emptyingProduct, setEmptyingProduct] = useState(null)
   const [logPromptProduct, setLogPromptProduct] = useState(null)
+  const [detailProduct, setDetailProduct] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -71,13 +73,6 @@ export default function Library() {
     } catch {
       load()
     }
-  }
-
-  async function addNote(product, text) {
-    const { note } = await api.post(`/products/${product.id}/notes`, { text })
-    setProducts((prev) =>
-      prev.map((p) => (p.id === product.id ? { ...p, notes: [note, ...(p.notes || [])] } : p))
-    )
   }
 
   function handleEmptyDone({ action, product, rebought }) {
@@ -175,7 +170,7 @@ export default function Library() {
                     onToggleFavourite={toggleFavourite}
                     onDelete={deleteProduct}
                     onMarkEmpty={setEmptyingProduct}
-                    onAddNote={addNote}
+                    onOpenDetail={setDetailProduct}
                   />
                 ))}
               </div>
@@ -212,6 +207,23 @@ export default function Library() {
         onClose={() => setEmptyingProduct(null)}
         onDone={handleEmptyDone}
       />
+
+      {detailProduct && (
+        <ProductDetailModal
+          key={detailProduct.id}
+          product={detailProduct}
+          onClose={() => setDetailProduct(null)}
+          onUpdated={upsertProduct}
+          onMarkEmpty={(product) => {
+            setDetailProduct(null)
+            setEmptyingProduct(product)
+          }}
+          onDeleted={(id) => {
+            setDetailProduct(null)
+            setProducts((prev) => prev.filter((p) => p.id !== id))
+          }}
+        />
+      )}
     </div>
   )
 }

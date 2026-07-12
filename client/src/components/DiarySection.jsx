@@ -7,7 +7,7 @@ import ProductPicker from './ProductPicker'
 const ICONS = { AM: Sunrise, PM: Moon }
 const TITLES = { AM: 'Morning', PM: 'Evening' }
 
-export default function DiarySection({ period, logs, availableProducts, onLog, onUnlog, onNew }) {
+export default function DiarySection({ period, logs, availableProducts, onLog, onUnlog, onNew, onOpenDetail }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const Icon = ICONS[period]
 
@@ -25,12 +25,16 @@ export default function DiarySection({ period, logs, availableProducts, onLog, o
           {logs.map(({ logId, product }) => (
             <span
               key={logId}
-              className="inline-flex items-center gap-1.5 rounded-full bg-white border border-plum-100 pl-3 pr-1.5 py-1.5 text-xs text-plum-800"
+              onClick={() => onOpenDetail(product)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white border border-plum-100 pl-3 pr-1.5 py-1.5 text-xs text-plum-800 cursor-pointer hover:border-blush-200 transition-colors"
             >
               {productLabel(product)}
               <span className="text-plum-300">· {CATEGORY_MAP[product.category]?.label}</span>
               <button
-                onClick={() => onUnlog(logId, product.id)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onUnlog(logId, product.id)
+                }}
                 className="text-plum-300 hover:text-blush-600 ml-0.5"
                 title="Remove from today"
               >
