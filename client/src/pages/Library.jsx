@@ -6,6 +6,7 @@ import ProductCard from '../components/ProductCard'
 import AddProductModal from '../components/AddProductModal'
 import EmptyProductModal from '../components/EmptyProductModal'
 import ConflictBanner from '../components/ConflictBanner'
+import LogTodayPrompt from '../components/LogTodayPrompt'
 import { logFavouriteToday } from '../lib/diaryFavourites'
 import { commonIngredients } from '../lib/ingredientStats'
 
@@ -14,6 +15,7 @@ export default function Library() {
   const [tab, setTab] = useState('active')
   const [addModalConfig, setAddModalConfig] = useState(null)
   const [emptyingProduct, setEmptyingProduct] = useState(null)
+  const [logPromptProduct, setLogPromptProduct] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -191,8 +193,17 @@ export default function Library() {
         onClose={() => setAddModalConfig(null)}
         onCreated={(product) => {
           setProducts((prev) => [...(prev || []), product])
-          logFavouriteToday(product)
+          if (product.favourite) setLogPromptProduct(product)
         }}
+      />
+
+      <LogTodayPrompt
+        product={logPromptProduct}
+        onConfirm={async () => {
+          await logFavouriteToday(logPromptProduct)
+          setLogPromptProduct(null)
+        }}
+        onDismiss={() => setLogPromptProduct(null)}
       />
 
       <EmptyProductModal
