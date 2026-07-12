@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Loader2, Activity } from 'lucide-react'
 import { api } from '../lib/api'
 import { localDateString, addDays, friendlyDate } from '../lib/dates'
@@ -6,14 +7,19 @@ import DiarySection from '../components/DiarySection'
 import AddProductModal from '../components/AddProductModal'
 import EmptyProductModal from '../components/EmptyProductModal'
 import ProductDetailModal from '../components/ProductDetailModal'
-import ConflictBanner from '../components/ConflictBanner'
+import DiaryConflictBanner from '../components/DiaryConflictBanner'
 import AbnormalityModal from '../components/AbnormalityModal'
 import { logFavouriteToday } from '../lib/diaryFavourites'
 
 const TODAY = localDateString()
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 export default function Diary() {
-  const [dateStr, setDateStr] = useState(TODAY)
+  const [searchParams] = useSearchParams()
+  const requestedDate = searchParams.get('date')
+  const [dateStr, setDateStr] = useState(
+    requestedDate && DATE_RE.test(requestedDate) ? requestedDate : TODAY
+  )
   const [entry, setEntry] = useState(null)
   const [activeProducts, setActiveProducts] = useState([])
   const [note, setNote] = useState('')
@@ -140,7 +146,14 @@ export default function Diary() {
         </button>
       </div>
 
-      <ConflictBanner products={activeProducts} />
+      {entry && (
+        <DiaryConflictBanner
+          key={dateStr}
+          products={[...new Map(
+            [...entry.am, ...entry.pm].map((l) => [l.product.id, l.product])
+          ).values()]}
+        />
+      )}
 
       {!entry ? (
         <div className="flex justify-center py-16 text-plum-300">

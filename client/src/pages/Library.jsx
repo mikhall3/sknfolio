@@ -9,7 +9,9 @@ import ProductDetailModal from '../components/ProductDetailModal'
 import ConflictBanner from '../components/ConflictBanner'
 import LogTodayPrompt from '../components/LogTodayPrompt'
 import { logFavouriteToday } from '../lib/diaryFavourites'
-import { commonIngredients } from '../lib/ingredientStats'
+import { commonIngredients, pairKey } from '../lib/ingredientStats'
+import { CURATED_INGREDIENTS } from '../data/ingredients'
+import { Check, RotateCcw } from 'lucide-react'
 
 export default function Library() {
   const [products, setProducts] = useState(null)
@@ -19,9 +21,11 @@ export default function Library() {
   const [logPromptProduct, setLogPromptProduct] = useState(null)
   const [detailProduct, setDetailProduct] = useState(null)
   const [error, setError] = useState('')
+  const [acknowledgements, setAcknowledgements] = useState([])
 
   useEffect(() => {
     load()
+    api.get('/conflicts').then((res) => setAcknowledgements(res.acknowledgements)).catch(() => {})
   }, [])
 
   function load() {
@@ -29,6 +33,27 @@ export default function Library() {
       .get('/products')
       .then((res) => setProducts(res.products))
       .catch((err) => setError(err.message))
+  }
+
+  const acknowledgedKeys = useMemo(
+    () => new Set(acknowledgements.map((a) => pairKey(a.ingredientA, a.ingredientB))),
+    [acknowledgements]
+  )
+
+  const ingredientByKey = useMemo(() => new Map(CURATED_INGREDIENTS.map((i) => [i.key, i])), [])
+
+  async function acknowledgeConflict(keyA, keyB) {
+    const res = await api.post('/conflicts', { ingredientA: keyA, ingredientB: keyB })
+    setAcknowledgements((prev) => [...prev.filter((a) => pairKey(a.ingredientA, a.ingredientB) !== pairKey(keyA, keyB)), res.acknowledgement])
+  }
+
+  async function undoAcknowledgement(id) {
+    setAcknowledgements((prev) => prev.filter((a) => a.id !== id))
+    try {
+      await api.delete(`/conflicts/${id}`)
+    } catch {
+      api.get('/conflicts').then((res) => setAcknowledgements(res.acknowledgements))
+    }
   }
 
   const visibleProducts = useMemo(() => {
@@ -123,7 +148,40 @@ export default function Library() {
         </button>
       </div>
 
-      {tab === 'active' && <ConflictBanner products={activeProducts} />}
+      {tab === 'active' && (
+        <ConflictBanner
+          products={activeProducts}
+          acknowledgedKeys={acknowledgedKeys}
+          onAcknowledge={acknowledgeConflict}
+        />
+      )}
+
+      {tab === 'active' && acknowledgements.length > 0 && (
+        <div className="rounded-2xl border border-plum-100 bg-plum-50/50 p-4 mb-5">
+          <p className="text-xs font-semibold text-plum-400 uppercase tracking-wide mb-2">Reviewed overlaps</p>
+          <div className="space-y-2">
+            {acknowledgements.map((a) => {
+              const ingA = ingredientByKey.get(a.ingredientA)
+              const ingB = ingredientByKey.get(a.ingredientB)
+              return (
+                <div key={a.id} className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-plum-600">
+                    <Check size={12} className="inline mr-1 text-plum-400" />
+                    {ingA?.label || a.ingredientA} + {ingB?.label || a.ingredientB}
+                  </span>
+                  <button
+                    onClick={() => undoAcknowledgement(a.id)}
+                    className="shrink-0 flex items-center gap-1 text-[11px] font-medium text-plum-400 hover:text-blush-600 transition-colors"
+                    title="Show this warning again"
+                  >
+                    <RotateCcw size={11} /> Undo
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {tab === 'active' && topIngredients.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 mb-5">

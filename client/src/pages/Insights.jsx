@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Flame, Smile, Meh, Frown, Loader2, Plus, Pencil, Trash2 } from 'lucide-react'
 import { api } from '../lib/api'
 import { localDateString, friendlyDate } from '../lib/dates'
@@ -12,6 +13,7 @@ const FEELING_ICON = { GREAT: Smile, OKAY: Meh, ROUGH: Frown }
 const ABNORMALITY_LABEL = Object.fromEntries(ABNORMALITY_TYPES.map((t) => [t.value, t.label]))
 
 export default function Insights() {
+  const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [abnormalities, setAbnormalities] = useState(null)
   const [editingCheckin, setEditingCheckin] = useState(false)
@@ -157,7 +159,11 @@ export default function Insights() {
           {data.last7Days.map((day) => {
             const hasContent = day.am.length > 0 || day.pm.length > 0 || day.note
             return (
-              <div key={day.date} className="border-b border-blush-100 last:border-0 pb-3 last:pb-0">
+              <button
+                key={day.date}
+                onClick={() => navigate(`/diary?date=${day.date}`)}
+                className="w-full text-left border-b border-blush-100 last:border-0 pb-3 last:pb-0 hover:bg-blush-50/50 rounded-lg transition-colors -mx-1 px-1"
+              >
                 <p className="text-xs font-semibold text-plum-500 mb-1">{friendlyDate(day.date)}</p>
                 {!hasContent ? (
                   <p className="text-xs text-plum-300">Nothing logged.</p>
@@ -178,7 +184,7 @@ export default function Insights() {
                     {day.note && <p className="text-xs text-plum-500 italic">"{day.note}"</p>}
                   </div>
                 )}
-              </div>
+              </button>
             )
           })}
         </div>

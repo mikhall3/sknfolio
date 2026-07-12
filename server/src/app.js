@@ -11,6 +11,7 @@ import ingredientRoutes from './routes/ingredients.js'
 import insightsRoutes from './routes/insights.js'
 import checkinRoutes from './routes/checkins.js'
 import abnormalityRoutes from './routes/abnormalities.js'
+import conflictRoutes from './routes/conflicts.js'
 import { requireAuth } from './middleware/auth.js'
 
 const app = express()
@@ -36,6 +37,7 @@ app.use('/api/ingredients', requireAuth, ingredientRoutes)
 app.use('/api/insights', requireAuth, insightsRoutes)
 app.use('/api/checkins', requireAuth, checkinRoutes)
 app.use('/api/abnormalities', requireAuth, abnormalityRoutes)
+app.use('/api/conflicts', requireAuth, conflictRoutes)
 
 // In production (a single deployed service, e.g. Replit) the server also
 // serves the built client, so the whole app lives behind one origin/port.

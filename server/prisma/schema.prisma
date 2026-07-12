@@ -12,12 +12,13 @@ model User {
   email     String   @unique
   createdAt DateTime @default(now())
 
-  magicLinks    MagicLink[]
-  sessions      Session[]
-  products      Product[]
-  diaryEntries  DiaryEntry[]
-  checkins      Checkin[]
-  abnormalities Abnormality[]
+  magicLinks              MagicLink[]
+  sessions                Session[]
+  products                Product[]
+  diaryEntries            DiaryEntry[]
+  checkins                Checkin[]
+  abnormalities           Abnormality[]
+  conflictAcknowledgements ConflictAcknowledgement[]
 }
 
 model MagicLink {
@@ -219,4 +220,20 @@ model Abnormality {
   createdAt DateTime       @default(now())
 
   @@index([userId, date])
+}
+
+// Lets a user acknowledge a specific overlapping-actives pair on the shelf so
+// it stops showing in the active warning banner, while keeping a reviewable
+// record of it. Keyed by the two ingredient keys (sorted) rather than by
+// product, since the underlying conflict is about the actives themselves and
+// should stay acknowledged even if the specific products are later swapped.
+model ConflictAcknowledgement {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ingredientA    String
+  ingredientB    String
+  acknowledgedAt DateTime @default(now())
+
+  @@unique([userId, ingredientA, ingredientB])
 }

@@ -2,6 +2,12 @@ import { CURATED_INGREDIENTS } from '../data/ingredients'
 
 const STRONG_ACTIVES = new Map(CURATED_INGREDIENTS.filter((i) => i.group === 'strong-active').map((i) => [i.key, i]))
 
+// Order-independent key for a pair of ingredient keys, used to match a
+// conflict against an acknowledgement regardless of which side is "a" or "b".
+export function pairKey(keyA, keyB) {
+  return keyA < keyB ? `${keyA}|${keyB}` : `${keyB}|${keyA}`
+}
+
 // Two distinct strong actives both currently in rotation is the conflict signal —
 // using the same active twice isn't a conflict, so we key by distinct ingredient.
 export function findConflicts(products) {
