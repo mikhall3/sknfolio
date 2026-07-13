@@ -1,8 +1,26 @@
 import { Router } from 'express'
+import { randomUUID } from 'node:crypto'
 import Anthropic from '@anthropic-ai/sdk'
 import { CURATED_INGREDIENTS } from '../data/ingredients.js'
 
 const router = Router()
+
+// A lookup can take well over a minute (multiple web searches + reasoning),
+// which is longer than most reverse proxies (including Replit's) will hold an
+// HTTP request open for - the platform kills it with its own "Bad Gateway"
+// long before our code gets a chance to respond, no matter how the request to
+// Anthropic itself is made. So the lookup runs in the background and the
+// client polls a short-lived job instead of waiting on one long request.
+const jobs = new Map()
+setInterval(
+  () => {
+    const cutoff = Date.now() - 10 * 60 * 1000
+    for (const [id, job] of jobs) {
+      if (job.createdAt < cutoff) jobs.delete(id)
+    }
+  },
+  5 * 60 * 1000
+).unref()
 
 const RESPONSE_SCHEMA = {
   type: 'object',
@@ -43,25 +61,10 @@ Set "confidence" honestly:
 
 "summary" is one or two plain sentences, written for someone who is not a chemist, explaining what you found and how sure you are. "sources" lists the URLs you actually used.`
 
-router.post('/detect', async (req, res) => {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'Ingredient lookup is not configured on this server.' })
-  }
-
-  const name = String(req.body?.name || '').trim()
-  if (!name) return res.status(400).json({ error: 'Product name is required.' })
-  const brand = req.body?.brand ? String(req.body.brand).trim() : ''
-  const category = req.body?.category ? String(req.body.category) : undefined
+async function runLookup(jobId, { name, brand, category }) {
   const fullName = brand ? `${brand} ${name}` : name
-
   try {
     const anthropic = new Anthropic()
-    // Streamed rather than a single blocking call: a multi-round web search
-    // lookup can genuinely take a minute or more, which risks a proxy/HTTP
-    // timeout on a non-streaming request. A generous max_tokens gives the
-    // model room to search several times, reason, and still write the full
-    // JSON answer - 2048 was tight enough that answers were getting cut off
-    // mid-response, which then failed to parse as JSON.
     const stream = anthropic.messages.stream({
       model: 'claude-opus-4-8',
       max_tokens: 8000,
@@ -81,16 +84,23 @@ router.post('/detect', async (req, res) => {
     const response = await stream.finalMessage()
 
     if (response.stop_reason === 'refusal') {
-      return res.status(422).json({ error: "Couldn't look that up — try tagging ingredients manually." })
+      jobs.set(jobId, { status: 'error', error: "Couldn't look that up — try tagging ingredients manually.", createdAt: Date.now() })
+      return
     }
     if (response.stop_reason === 'max_tokens') {
-      return res.status(502).json({ error: 'That lookup ran out of room before finishing. Try again, or tag ingredients manually.' })
+      jobs.set(jobId, {
+        status: 'error',
+        error: 'That lookup ran out of room before finishing. Try again, or tag ingredients manually.',
+        createdAt: Date.now(),
+      })
+      return
     }
 
     const textBlocks = response.content.filter((block) => block.type === 'text')
     const finalText = textBlocks[textBlocks.length - 1]?.text
     if (!finalText) {
-      return res.status(502).json({ error: 'No result from ingredient lookup.' })
+      jobs.set(jobId, { status: 'error', error: 'No result from ingredient lookup.', createdAt: Date.now() })
+      return
     }
 
     let parsed
@@ -98,13 +108,41 @@ router.post('/detect', async (req, res) => {
       parsed = JSON.parse(finalText)
     } catch {
       console.error('Ingredient detection returned unparseable JSON:', finalText)
-      return res.status(502).json({ error: 'Got an unreadable result. Try again, or tag ingredients manually.' })
+      jobs.set(jobId, {
+        status: 'error',
+        error: 'Got an unreadable result. Try again, or tag ingredients manually.',
+        createdAt: Date.now(),
+      })
+      return
     }
-    res.json(parsed)
+    jobs.set(jobId, { status: 'done', result: parsed, createdAt: Date.now() })
   } catch (err) {
     console.error('Ingredient detection failed:', err)
-    res.status(502).json({ error: 'Ingredient lookup failed. Try tagging manually.' })
+    jobs.set(jobId, { status: 'error', error: 'Ingredient lookup failed. Try tagging manually.', createdAt: Date.now() })
   }
+}
+
+router.post('/detect', (req, res) => {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'Ingredient lookup is not configured on this server.' })
+  }
+
+  const name = String(req.body?.name || '').trim()
+  if (!name) return res.status(400).json({ error: 'Product name is required.' })
+  const brand = req.body?.brand ? String(req.body.brand).trim() : ''
+  const category = req.body?.category ? String(req.body.category) : undefined
+
+  const jobId = randomUUID()
+  jobs.set(jobId, { status: 'pending', createdAt: Date.now() })
+  runLookup(jobId, { name, brand, category })
+
+  res.status(202).json({ jobId })
+})
+
+router.get('/detect/:jobId', (req, res) => {
+  const job = jobs.get(req.params.jobId)
+  if (!job) return res.status(404).json({ error: 'Lookup not found — it may have expired. Try again.' })
+  res.json(job)
 })
 
 export default router

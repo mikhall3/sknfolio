@@ -107,15 +107,27 @@ export default function AddProductModal({
     setLookupError('')
   }
 
+  async function pollLookup(jobId) {
+    const maxAttempts = 60 // ~2 minutes at 2s intervals
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      const job = await api.get(`/ingredients/detect/${jobId}`)
+      if (job.status === 'done') return job.result
+      if (job.status === 'error') throw new Error(job.error)
+    }
+    throw new Error('This lookup is taking longer than expected. Try again in a moment.')
+  }
+
   async function handleLookup() {
     setLookupStatus('loading')
     setLookupError('')
     try {
-      const result = await api.post('/ingredients/detect', {
+      const { jobId } = await api.post('/ingredients/detect', {
         name: form.name,
         brand: form.brand,
         category: form.category,
       })
+      const result = await pollLookup(jobId)
       setLookupResult(result)
       setForm((f) => {
         const existingKeys = new Set(f.ingredients.map((i) => i.key))
