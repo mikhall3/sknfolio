@@ -22,6 +22,7 @@ export default function Shelf() {
   const [detailProduct, setDetailProduct] = useState(null)
   const [error, setError] = useState('')
   const [acknowledgements, setAcknowledgements] = useState([])
+  const [ingredientFilter, setIngredientFilter] = useState(null)
 
   useEffect(() => {
     load()
@@ -59,8 +60,10 @@ export default function Shelf() {
   const visibleProducts = useMemo(() => {
     if (!products) return null
     const status = tab === 'active' ? 'ACTIVE' : 'ARCHIVED'
-    return products.filter((p) => p.status === status)
-  }, [products, tab])
+    const byStatus = products.filter((p) => p.status === status)
+    if (!ingredientFilter) return byStatus
+    return byStatus.filter((p) => (p.ingredientTags || []).some((t) => t.key === ingredientFilter))
+  }, [products, tab, ingredientFilter])
 
   const grouped = useMemo(() => {
     if (!visibleProducts) return []
@@ -131,7 +134,10 @@ export default function Shelf() {
 
       <div className="inline-flex rounded-full bg-plum-50 p-1 mb-5 text-sm">
         <button
-          onClick={() => setTab('active')}
+          onClick={() => {
+            setTab('active')
+            setIngredientFilter(null)
+          }}
           className={`px-4 py-1.5 rounded-full font-medium transition-colors ${
             tab === 'active' ? 'bg-white text-blush-600 shadow-sm' : 'text-plum-400'
           }`}
@@ -139,7 +145,10 @@ export default function Shelf() {
           Active
         </button>
         <button
-          onClick={() => setTab('archived')}
+          onClick={() => {
+            setTab('archived')
+            setIngredientFilter(null)
+          }}
           className={`px-4 py-1.5 rounded-full font-medium transition-colors ${
             tab === 'archived' ? 'bg-white text-blush-600 shadow-sm' : 'text-plum-400'
           }`}
@@ -186,15 +195,23 @@ export default function Shelf() {
       {tab === 'active' && topIngredients.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 mb-5">
           <span className="text-xs text-plum-400 mr-0.5">Most used:</span>
-          {topIngredients.map((ing) => (
-            <span
-              key={ing.key}
-              className="inline-flex items-center gap-1 rounded-full bg-plum-50 text-plum-500 text-xs px-2.5 py-1"
-            >
-              {ing.label}
-              <span className="text-plum-300">· {ing.count}</span>
-            </span>
-          ))}
+          {topIngredients.map((ing) => {
+            const active = ingredientFilter === ing.key
+            return (
+              <button
+                key={ing.key}
+                onClick={() => setIngredientFilter((prev) => (prev === ing.key ? null : ing.key))}
+                className={`inline-flex items-center gap-1 rounded-full text-xs px-2.5 py-1 border transition-colors ${
+                  active
+                    ? 'bg-blush-500 border-blush-500 text-white'
+                    : 'bg-plum-50 border-transparent text-plum-500 hover:border-blush-200'
+                }`}
+              >
+                {ing.label}
+                <span className={active ? 'text-blush-100' : 'text-plum-300'}>· {ing.count}</span>
+              </button>
+            )
+          })}
         </div>
       )}
 
