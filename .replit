@@ -43,3 +43,6 @@ waitForPort = 3001
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[agent]
+expertMode = true
