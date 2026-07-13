@@ -69,8 +69,8 @@ async function runLookup(jobId, { name, brand, category }) {
       model: 'claude-opus-4-8',
       max_tokens: 8000,
       thinking: { type: 'adaptive' },
-      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }],
-      output_config: { format: { type: 'json_schema', schema: RESPONSE_SCHEMA } },
+      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
+      output_config: { format: { type: 'json_schema', schema: RESPONSE_SCHEMA }, effort: 'medium' },
       system: SYSTEM_PROMPT,
       messages: [
         {

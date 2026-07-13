@@ -236,6 +236,7 @@ export default function Diary() {
             refreshEntry()
           }
         }}
+        onIngredientsReady={loadActiveProducts}
       />
 
       <AbnormalityModal

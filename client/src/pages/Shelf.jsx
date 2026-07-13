@@ -265,6 +265,7 @@ export default function Shelf() {
           setProducts((prev) => [...(prev || []), product])
           if (product.favourite) setLogPromptProduct(product)
         }}
+        onIngredientsReady={load}
       />
 
       <LogTodayPrompt

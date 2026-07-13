@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { X, ChevronLeft, ChevronRight, Check, Loader2, Plus, Sparkles, AlertTriangle } from 'lucide-react'
 import { CATEGORIES, FILL_LEVELS, SIZE_TYPES, TIME_OF_DAY_OPTIONS } from '../data/categories'
 import { CURATED_INGREDIENTS, slugify } from '../data/ingredients'
@@ -23,11 +23,13 @@ export default function AddProductModal({
   open,
   onClose,
   onCreated,
+  onIngredientsReady,
   defaultTimeOfDay,
   defaultCategory,
   existingProducts,
 }) {
   const [stepIndex, setStepIndex] = useState(0)
+  const lookupAttemptRef = useRef(null)
   const [form, setForm] = useState({
     category: defaultCategory || null,
     brand: '',
@@ -108,7 +110,7 @@ export default function AddProductModal({
   }
 
   async function pollLookup(jobId) {
-    const maxAttempts = 60 // ~2 minutes at 2s intervals
+    const maxAttempts = 90 // ~3 minutes at 2s intervals
     for (let i = 0; i < maxAttempts; i++) {
       await new Promise((resolve) => setTimeout(resolve, 2000))
       const job = await api.get(`/ingredients/detect/${jobId}`)
@@ -118,31 +120,38 @@ export default function AddProductModal({
     throw new Error('This lookup is taking longer than expected. Try again in a moment.')
   }
 
+  function resultToAdditions(existingIngredients, result) {
+    const existingKeys = new Set(existingIngredients.map((i) => i.key))
+    return (result.ingredients || [])
+      .map((ing) => {
+        const key = ing.key || slugify(ing.label)
+        if (!key || existingKeys.has(key)) return null
+        existingKeys.add(key)
+        return { key, label: ing.label, confidence: result.confidence, source: 'ai' }
+      })
+      .filter(Boolean)
+  }
+
   async function handleLookup() {
     setLookupStatus('loading')
     setLookupError('')
-    try {
+    const attempt = (async () => {
       const { jobId } = await api.post('/ingredients/detect', {
         name: form.name,
         brand: form.brand,
         category: form.category,
       })
-      const result = await pollLookup(jobId)
+      return pollLookup(jobId)
+    })()
+    lookupAttemptRef.current = attempt
+    try {
+      const result = await attempt
+      if (lookupAttemptRef.current !== attempt) return // a newer lookup superseded this one
       setLookupResult(result)
-      setForm((f) => {
-        const existingKeys = new Set(f.ingredients.map((i) => i.key))
-        const additions = (result.ingredients || [])
-          .map((ing) => {
-            const key = ing.key || slugify(ing.label)
-            if (!key || existingKeys.has(key)) return null
-            existingKeys.add(key)
-            return { key, label: ing.label, confidence: result.confidence, source: 'ai' }
-          })
-          .filter(Boolean)
-        return { ...f, ingredients: [...f.ingredients, ...additions] }
-      })
+      setForm((f) => ({ ...f, ingredients: [...f.ingredients, ...resultToAdditions(f.ingredients, result)] }))
       setLookupStatus('done')
     } catch (err) {
+      if (lookupAttemptRef.current !== attempt) return
       setLookupError(err.message || 'Could not look this up.')
       setLookupStatus('error')
     }
@@ -156,6 +165,11 @@ export default function AddProductModal({
   async function handleSubmit() {
     setSaving(true)
     setError('')
+    // If a lookup is still searching, don't make the user wait for it - save
+    // now with whatever's tagged so far, and quietly attach the AI-found
+    // ingredients to the product once the search finishes.
+    const inFlightLookup = lookupStatus === 'loading' ? lookupAttemptRef.current : null
+    const submittedIngredients = form.ingredients
     try {
       const { product } = await api.post('/products', {
         name: form.name.trim(),
@@ -165,10 +179,21 @@ export default function AddProductModal({
         sizeType: form.sizeType,
         timeOfDay: form.timeOfDay,
         favourite: form.favourite,
-        ingredients: form.ingredients,
+        ingredients: submittedIngredients,
       })
       onCreated(product)
       handleClose()
+      if (inFlightLookup) {
+        inFlightLookup
+          .then(async (result) => {
+            const additions = resultToAdditions(submittedIngredients, result)
+            for (const tag of additions) {
+              await api.post(`/products/${product.id}/ingredients`, tag).catch(() => {})
+            }
+            onIngredientsReady?.(product.id)
+          })
+          .catch(() => {})
+      }
     } catch (err) {
       setError(err.message || 'Could not save this product.')
     } finally {
@@ -353,6 +378,13 @@ export default function AddProductModal({
                 )}
                 Look up real ingredients
               </button>
+
+              {lookupStatus === 'loading' && (
+                <p className="text-[11px] text-plum-400 -mt-2 mb-3 leading-relaxed">
+                  Searching — this can take a minute. No need to wait: go ahead and finish adding the product, or
+                  tag ingredients yourself below. We'll fill these in automatically if the search finishes first.
+                </p>
+              )}
 
               {lookupError && (
                 <p className="text-xs text-blush-700 bg-blush-50 border border-blush-200 rounded-xl px-3 py-2 mb-3">
