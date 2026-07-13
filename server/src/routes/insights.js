@@ -26,18 +26,19 @@ router.get('/', async (req, res) => {
   const today = parseDateOnly(req.query.today)
   if (!today) return res.status(400).json({ error: 'Invalid today, expected YYYY-MM-DD.' })
 
-  const rangeStart = addDays(today, -6)
+  const weekStart = startOfWeek(today)
 
-  // Last 7 days: only ever real logged history, never a projection of favourites.
+  // This week (Monday-Sunday): only ever real logged history, never a
+  // projection of favourites - future days in the week just show as empty.
   const entries = await prisma.diaryEntry.findMany({
-    where: { userId: req.user.id, date: { gte: rangeStart, lte: today } },
+    where: { userId: req.user.id, date: { gte: weekStart, lte: addDays(weekStart, 6) } },
     include: logInclude,
   })
   const entryByDate = new Map(entries.map((e) => [formatDateOnly(e.date), e]))
-  const last7Days = []
+  const thisWeek = []
   for (let i = 0; i < 7; i++) {
-    const date = addDays(rangeStart, i)
-    last7Days.push(serializeEntry(date, entryByDate.get(formatDateOnly(date))))
+    const date = addDays(weekStart, i)
+    thisWeek.push(serializeEntry(date, entryByDate.get(formatDateOnly(date))))
   }
 
   // Streak: consecutive days with any real content (a log or a note), walking
@@ -62,21 +63,20 @@ router.get('/', async (req, res) => {
 
   // Weekly check-in status, plus recent history so progress over time is visible,
   // not just the current week.
-  const weekOf = startOfWeek(today)
   const checkin = await prisma.checkin.findUnique({
-    where: { userId_weekOf: { userId: req.user.id, weekOf } },
+    where: { userId_weekOf: { userId: req.user.id, weekOf: weekStart } },
   })
   const history = await prisma.checkin.findMany({
-    where: { userId: req.user.id, weekOf: { lt: weekOf } },
+    where: { userId: req.user.id, weekOf: { lt: weekStart } },
     orderBy: { weekOf: 'desc' },
     take: 8,
   })
 
   res.json({
-    last7Days,
+    thisWeek,
     streak: { count: streakCount, hasLoggedToday },
     checkin: {
-      weekOf: formatDateOnly(weekOf),
+      weekOf: formatDateOnly(weekStart),
       current: checkin,
       history: history.map((c) => ({ weekOf: formatDateOnly(c.weekOf), feeling: c.feeling, note: c.note })),
     },

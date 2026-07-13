@@ -1,6 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Flame, Smile, Meh, Frown, Loader2, Plus, Pencil, Trash2, CalendarCheck, GraduationCap } from 'lucide-react'
+import {
+  Flame,
+  Smile,
+  Meh,
+  Frown,
+  Loader2,
+  Plus,
+  Pencil,
+  Trash2,
+  CalendarCheck,
+  GraduationCap,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
 import { api } from '../lib/api'
 import { localDateString, friendlyDate } from '../lib/dates'
 import { FEELING_OPTIONS, ABNORMALITY_TYPES } from '../data/insights'
@@ -26,6 +39,16 @@ export default function Insights() {
   const [checkinNote, setCheckinNote] = useState('')
   const [savingCheckin, setSavingCheckin] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
+  const [expandedWeeks, setExpandedWeeks] = useState(new Set())
+
+  function toggleWeek(weekOf) {
+    setExpandedWeeks((prev) => {
+      const next = new Set(prev)
+      if (next.has(weekOf)) next.delete(weekOf)
+      else next.add(weekOf)
+      return next
+    })
+  }
 
   useEffect(() => {
     load()
@@ -177,33 +200,10 @@ export default function Insights() {
         )}
       </div>
 
-      {data.checkin.history.length > 0 && (
-        <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
-          <h2 className="font-display text-lg font-semibold text-plum-900 mb-3">Your progress</h2>
-          <div className="space-y-2.5">
-            {data.checkin.history.map((c) => {
-              const Icon = FEELING_ICON[c.feeling]
-              return (
-                <div key={c.weekOf} className="flex items-start gap-2.5">
-                  <Icon size={16} className="text-blush-500 mt-0.5 shrink-0" strokeWidth={1.75} />
-                  <div className="min-w-0">
-                    <p className="text-sm text-plum-800">
-                      <span className="font-medium">{FEELING_LABEL[c.feeling]}</span>{' '}
-                      <span className="text-plum-400 text-xs">· week of {friendlyDate(c.weekOf)}</span>
-                    </p>
-                    {c.note && <p className="text-xs text-plum-500 mt-0.5">{c.note}</p>}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
       <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
-        <h2 className="font-display text-lg font-semibold text-plum-900 mb-3">Last 7 days</h2>
+        <h2 className="font-display text-lg font-semibold text-plum-900 mb-3">This week</h2>
         <div className="space-y-3">
-          {data.last7Days.map((day) => {
+          {data.thisWeek.map((day) => {
             const hasContent = day.am.length > 0 || day.pm.length > 0 || day.note
             return (
               <button
@@ -236,6 +236,44 @@ export default function Insights() {
           })}
         </div>
       </div>
+
+      {data.checkin.history.length > 0 && (
+        <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
+          <h2 className="font-display text-lg font-semibold text-plum-900 mb-2">Your progress</h2>
+          <div className="divide-y divide-blush-100">
+            {data.checkin.history.map((c) => {
+              const Icon = FEELING_ICON[c.feeling]
+              const hasNote = Boolean(c.note)
+              const expanded = expandedWeeks.has(c.weekOf)
+              return (
+                <div key={c.weekOf}>
+                  <button
+                    onClick={() => hasNote && toggleWeek(c.weekOf)}
+                    className={`w-full flex items-center justify-between gap-2 py-2.5 text-left ${
+                      hasNote ? 'cursor-pointer' : 'cursor-default'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Icon size={15} className="text-blush-500 shrink-0" strokeWidth={1.75} />
+                      <span className="text-xs text-plum-400 shrink-0">week of {friendlyDate(c.weekOf)}</span>
+                      <span className="text-sm text-plum-800 font-medium truncate">{FEELING_LABEL[c.feeling]}</span>
+                    </div>
+                    {hasNote &&
+                      (expanded ? (
+                        <ChevronUp size={14} className="text-plum-300 shrink-0" />
+                      ) : (
+                        <ChevronDown size={14} className="text-plum-300 shrink-0" />
+                      ))}
+                  </button>
+                  {hasNote && expanded && (
+                    <p className="text-xs text-plum-500 pb-2.5 pl-[23px] leading-relaxed">{c.note}</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {educationFacts.length > 0 && (
         <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
