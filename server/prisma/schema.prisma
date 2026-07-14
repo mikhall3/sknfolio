@@ -117,6 +117,7 @@ model Product {
   ingredientLookupStatus    IngredientLookupStatus @default(NONE)
   ingredientLookupError     String?
   ingredientLookupStartedAt DateTime?
+  ingredientLookupSummary   String?
 
   emptyRating    Int?
   emptyComment   String?
@@ -161,6 +162,10 @@ model ProductIngredient {
   label      String
   confidence IngredientConfidence?
   source     String?
+  // False for an instant memory-based guess (source "ai") that hasn't been
+  // confirmed by a real web search yet - true for manual tags and for AI
+  // tags once the background verified search confirms them.
+  verified   Boolean               @default(true)
   createdAt  DateTime              @default(now())
 
   @@unique([productId, key])
