@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { X, Star, Trash2, PackageCheck, Plus, Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { X, Star, Trash2, PackageCheck, Plus, Loader2, Sparkles, RotateCcw } from 'lucide-react'
 import { CATEGORIES, CATEGORY_MAP, FILL_LEVELS, SIZE_TYPES, TIME_OF_DAY_OPTIONS } from '../data/categories'
 import { CURATED_INGREDIENTS, slugify } from '../data/ingredients'
 import { friendlyDate } from '../lib/dates'
@@ -16,8 +16,47 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
   const [savingNote, setSavingNote] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState('')
+  const [retrying, setRetrying] = useState(false)
+
+  // The ingredient lookup runs on the server independently of this modal, so
+  // poll while it's still going - this is what surfaces "still searching"
+  // (or a finished/failed result) even for a lookup someone else's tab started.
+  useEffect(() => {
+    if (current.ingredientLookupStatus !== 'PENDING') return
+    const interval = setInterval(async () => {
+      try {
+        const { product: fresh } = await api.get(`/products/${current.id}`)
+        setCurrent(fresh)
+        onUpdated(fresh)
+      } catch {
+        // transient - try again on the next tick
+      }
+    }, 3000)
+    return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current.ingredientLookupStatus, current.id])
 
   if (!product) return null
+
+  async function retryLookup() {
+    setRetrying(true)
+    setError('')
+    try {
+      const { jobId } = await api.post('/ingredients/detect', {
+        name: current.name,
+        brand: current.brand,
+        category: current.category,
+      })
+      await api.post(`/ingredients/detect/${jobId}/attach`, { productId: current.id })
+      const { product: fresh } = await api.get(`/products/${current.id}`)
+      setCurrent(fresh)
+      onUpdated(fresh)
+    } catch (err) {
+      setError(err.message || 'Could not start that search.')
+    } finally {
+      setRetrying(false)
+    }
+  }
 
   const archived = current.status === 'ARCHIVED'
   const category = CATEGORY_MAP[current.category]
@@ -243,6 +282,38 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
           )}
 
           <p className="text-xs font-medium text-plum-500 mb-1.5">Ingredients</p>
+
+          {current.ingredientLookupStatus === 'PENDING' && (
+            <p className="flex items-center gap-1.5 text-xs text-plum-500 bg-plum-50 border border-plum-100 rounded-xl px-3 py-2 mb-3">
+              <Loader2 size={13} className="animate-spin shrink-0" />
+              Still searching for the real ingredient list — this can take a minute. Feel free to close this and
+              check back; it'll fill in automatically.
+            </p>
+          )}
+          {current.ingredientLookupStatus === 'ERROR' && (
+            <div className="flex items-center justify-between gap-2 text-xs text-blush-700 bg-blush-50 border border-blush-200 rounded-xl px-3 py-2 mb-3">
+              <span>{current.ingredientLookupError || 'Ingredient search failed.'}</span>
+              <button
+                onClick={retryLookup}
+                disabled={retrying}
+                className="flex items-center gap-1 shrink-0 font-medium hover:text-blush-800 disabled:opacity-50"
+              >
+                {retrying ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                Retry
+              </button>
+            </div>
+          )}
+          {!archived && current.ingredientLookupStatus !== 'PENDING' && current.ingredientLookupStatus !== 'ERROR' && (
+            <button
+              onClick={retryLookup}
+              disabled={retrying}
+              className="flex items-center gap-1.5 rounded-full border border-plum-200 bg-white text-plum-600 text-xs font-medium px-3 py-1.5 mb-3 hover:border-blush-300 hover:text-blush-600 transition-colors disabled:opacity-50"
+            >
+              {retrying ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+              Look up real ingredients
+            </button>
+          )}
+
           <div className="flex flex-wrap gap-2 mb-3">
             {CURATED_INGREDIENTS.map((ing) => {
               const active = current.ingredientTags.some((t) => t.key === ing.key)

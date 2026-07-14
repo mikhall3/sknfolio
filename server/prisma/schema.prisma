@@ -88,6 +88,13 @@ enum RetireReason {
   RETIRED
 }
 
+enum IngredientLookupStatus {
+  NONE
+  PENDING
+  DONE
+  ERROR
+}
+
 model Product {
   id        String        @id @default(cuid())
   userId    String
@@ -103,6 +110,13 @@ model Product {
   timeOfDay TimeOfDay     @default(BOTH)
   amOrder   Int?
   pmOrder   Int?
+
+  // Tracks a background ingredient lookup that was still running when the
+  // product was created, so any page/device can show live status even if the
+  // tab that started the lookup is long gone by the time it finishes.
+  ingredientLookupStatus    IngredientLookupStatus @default(NONE)
+  ingredientLookupError     String?
+  ingredientLookupStartedAt DateTime?
 
   emptyRating    Int?
   emptyComment   String?

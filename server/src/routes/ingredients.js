@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { randomUUID } from 'node:crypto'
 import Anthropic from '@anthropic-ai/sdk'
 import { CURATED_INGREDIENTS } from '../data/ingredients.js'
+import { prisma } from '../db.js'
 
 const router = Router()
 
@@ -61,6 +62,50 @@ Set "confidence" honestly:
 
 "summary" is one or two plain sentences, written for someone who is not a chemist, explaining what you found and how sure you are. "sources" lists the URLs you actually used.`
 
+function slugify(label) {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
+
+// Ends a job with the given status/result, preserving any productId that was
+// attached to it in the meantime, and returns that productId so the caller
+// can write the result straight to the database - this is what makes the
+// lookup durable even if the browser tab that started it is long gone.
+function finishJob(jobId, patch) {
+  const productId = jobs.get(jobId)?.productId
+  jobs.set(jobId, { ...patch, productId, createdAt: Date.now() })
+  return productId
+}
+
+async function applyResultToProduct(productId, result) {
+  const existingTags = await prisma.productIngredient.findMany({ where: { productId }, select: { key: true } })
+  const existingKeys = new Set(existingTags.map((t) => t.key))
+  const additions = []
+  for (const ing of result.ingredients || []) {
+    const key = ing.key || slugify(ing.label || '')
+    if (!key || existingKeys.has(key)) continue
+    existingKeys.add(key)
+    additions.push({ productId, key, label: ing.label, confidence: result.confidence, source: 'ai' })
+  }
+  await prisma.$transaction([
+    ...(additions.length ? [prisma.productIngredient.createMany({ data: additions, skipDuplicates: true })] : []),
+    prisma.product.update({
+      where: { id: productId },
+      data: { ingredientLookupStatus: 'DONE', ingredientLookupError: null },
+    }),
+  ])
+}
+
+async function markProductLookupError(productId, message) {
+  // The product may have been deleted while the lookup was still running.
+  await prisma.product
+    .update({ where: { id: productId }, data: { ingredientLookupStatus: 'ERROR', ingredientLookupError: message } })
+    .catch(() => {})
+}
+
 async function runLookup(jobId, { name, brand, category }) {
   const fullName = brand ? `${brand} ${name}` : name
   try {
@@ -84,22 +129,24 @@ async function runLookup(jobId, { name, brand, category }) {
     const response = await stream.finalMessage()
 
     if (response.stop_reason === 'refusal') {
-      jobs.set(jobId, { status: 'error', error: "Couldn't look that up — try tagging ingredients manually.", createdAt: Date.now() })
+      const error = "Couldn't look that up — try tagging ingredients manually."
+      const productId = finishJob(jobId, { status: 'error', error })
+      if (productId) await markProductLookupError(productId, error)
       return
     }
     if (response.stop_reason === 'max_tokens') {
-      jobs.set(jobId, {
-        status: 'error',
-        error: 'That lookup ran out of room before finishing. Try again, or tag ingredients manually.',
-        createdAt: Date.now(),
-      })
+      const error = 'That lookup ran out of room before finishing. Try again, or tag ingredients manually.'
+      const productId = finishJob(jobId, { status: 'error', error })
+      if (productId) await markProductLookupError(productId, error)
       return
     }
 
     const textBlocks = response.content.filter((block) => block.type === 'text')
     const finalText = textBlocks[textBlocks.length - 1]?.text
     if (!finalText) {
-      jobs.set(jobId, { status: 'error', error: 'No result from ingredient lookup.', createdAt: Date.now() })
+      const error = 'No result from ingredient lookup.'
+      const productId = finishJob(jobId, { status: 'error', error })
+      if (productId) await markProductLookupError(productId, error)
       return
     }
 
@@ -108,17 +155,24 @@ async function runLookup(jobId, { name, brand, category }) {
       parsed = JSON.parse(finalText)
     } catch {
       console.error('Ingredient detection returned unparseable JSON:', finalText)
-      jobs.set(jobId, {
-        status: 'error',
-        error: 'Got an unreadable result. Try again, or tag ingredients manually.',
-        createdAt: Date.now(),
-      })
+      const error = 'Got an unreadable result. Try again, or tag ingredients manually.'
+      const productId = finishJob(jobId, { status: 'error', error })
+      if (productId) await markProductLookupError(productId, error)
       return
     }
-    jobs.set(jobId, { status: 'done', result: parsed, createdAt: Date.now() })
+
+    const productId = finishJob(jobId, { status: 'done', result: parsed })
+    if (productId) {
+      await applyResultToProduct(productId, parsed).catch((err) => {
+        console.error('Failed to save ingredient lookup result to product:', err)
+        return markProductLookupError(productId, 'Found ingredients but failed to save them. Try tagging manually.')
+      })
+    }
   } catch (err) {
     console.error('Ingredient detection failed:', err)
-    jobs.set(jobId, { status: 'error', error: 'Ingredient lookup failed. Try tagging manually.', createdAt: Date.now() })
+    const error = 'Ingredient lookup failed. Try tagging manually.'
+    const productId = finishJob(jobId, { status: 'error', error })
+    if (productId) await markProductLookupError(productId, error)
   }
 }
 
@@ -143,6 +197,37 @@ router.get('/detect/:jobId', (req, res) => {
   const job = jobs.get(req.params.jobId)
   if (!job) return res.status(404).json({ error: 'Lookup not found — it may have expired. Try again.' })
   res.json(job)
+})
+
+// Links an in-flight (or already-finished) lookup job to a product so the
+// result lands on that product no matter what happens to the browser tab
+// that kicked the lookup off - closed, reloaded, offline, whatever. Any page
+// viewing the product can then just watch its ingredientLookupStatus field.
+router.post('/detect/:jobId/attach', async (req, res) => {
+  const productId = String(req.body?.productId || '').trim()
+  if (!productId) return res.status(400).json({ error: 'productId is required.' })
+  const product = await prisma.product.findFirst({ where: { id: productId, userId: req.user.id } })
+  if (!product) return res.status(404).json({ error: 'Product not found.' })
+
+  const job = jobs.get(req.params.jobId)
+  if (!job) {
+    await markProductLookupError(productId, "That lookup expired before it could finish — try again from the product's detail page.")
+    return res.status(404).json({ error: 'Lookup not found — it may have expired.' })
+  }
+
+  if (job.status === 'done') {
+    await applyResultToProduct(productId, job.result)
+  } else if (job.status === 'error') {
+    await markProductLookupError(productId, job.error)
+  } else {
+    await prisma.product.update({
+      where: { id: productId },
+      data: { ingredientLookupStatus: 'PENDING', ingredientLookupStartedAt: new Date(), ingredientLookupError: null },
+    })
+    jobs.set(req.params.jobId, { ...job, productId })
+  }
+
+  res.status(204).end()
 })
 
 export default router

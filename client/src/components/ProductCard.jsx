@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Star, Trash2, Sunrise, Moon, SunMoon, PackageCheck } from 'lucide-react'
+import { Star, Trash2, Sunrise, Moon, SunMoon, PackageCheck, Loader2, AlertTriangle } from 'lucide-react'
 import { CATEGORY_MAP, SIZE_TYPES } from '../data/categories'
 
 const TIME_ICON = { AM: Sunrise, PM: Moon, BOTH: SunMoon }
@@ -27,6 +27,16 @@ export default function ProductCard({ product, onToggleFavourite, onDelete, onMa
             {product.brand && <p className="text-[11px] text-plum-400 line-clamp-1">{product.brand}</p>}
             <p className="text-sm font-medium text-plum-900 line-clamp-2 leading-tight">{product.name}</p>
             <p className="text-xs text-plum-400 mt-0.5">{category?.label}</p>
+            {product.ingredientLookupStatus === 'PENDING' && (
+              <p className="flex items-center gap-1 text-[10px] text-plum-400 mt-1">
+                <Loader2 size={10} className="animate-spin" /> Searching ingredients…
+              </p>
+            )}
+            {product.ingredientLookupStatus === 'ERROR' && (
+              <p className="flex items-center gap-1 text-[10px] text-blush-600 mt-1">
+                <AlertTriangle size={10} /> Ingredient search failed
+              </p>
+            )}
           </div>
         </div>
         {!archived && (

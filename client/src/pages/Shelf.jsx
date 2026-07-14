@@ -29,6 +29,14 @@ export default function Shelf() {
     api.get('/conflicts').then((res) => setAcknowledgements(res.acknowledgements)).catch(() => {})
   }, [])
 
+  // Ingredient lookups run on the server in the background - poll while any
+  // product is still searching so cards update on their own once it lands.
+  useEffect(() => {
+    if (!products?.some((p) => p.ingredientLookupStatus === 'PENDING')) return
+    const interval = setInterval(load, 4000)
+    return () => clearInterval(interval)
+  }, [products])
+
   function load() {
     api
       .get('/products')

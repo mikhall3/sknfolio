@@ -30,6 +30,7 @@ export default function AddProductModal({
 }) {
   const [stepIndex, setStepIndex] = useState(0)
   const lookupAttemptRef = useRef(null)
+  const lookupJobIdPromiseRef = useRef(null)
   const [form, setForm] = useState({
     category: defaultCategory || null,
     brand: '',
@@ -107,6 +108,7 @@ export default function AddProductModal({
     setLookupStatus('idle')
     setLookupResult(null)
     setLookupError('')
+    lookupJobIdPromiseRef.current = null
   }
 
   async function pollLookup(jobId) {
@@ -135,14 +137,16 @@ export default function AddProductModal({
   async function handleLookup() {
     setLookupStatus('loading')
     setLookupError('')
-    const attempt = (async () => {
-      const { jobId } = await api.post('/ingredients/detect', {
-        name: form.name,
-        brand: form.brand,
-        category: form.category,
-      })
-      return pollLookup(jobId)
-    })()
+    // Set synchronously (before any await) so a fast "Add to shelf" click
+    // can never race ahead of this ref being populated - handleSubmit reads
+    // it as soon as this function starts, not after the network round trip.
+    const jobIdPromise = api.post('/ingredients/detect', {
+      name: form.name,
+      brand: form.brand,
+      category: form.category,
+    }).then(({ jobId }) => jobId)
+    lookupJobIdPromiseRef.current = jobIdPromise
+    const attempt = (async () => pollLookup(await jobIdPromise))()
     lookupAttemptRef.current = attempt
     try {
       const result = await attempt
@@ -166,10 +170,11 @@ export default function AddProductModal({
     setSaving(true)
     setError('')
     // If a lookup is still searching, don't make the user wait for it - save
-    // now with whatever's tagged so far, and quietly attach the AI-found
-    // ingredients to the product once the search finishes.
-    const inFlightLookup = lookupStatus === 'loading' ? lookupAttemptRef.current : null
-    const submittedIngredients = form.ingredients
+    // now with whatever's tagged so far. The lookup job keeps running on the
+    // server regardless of what this tab does next, so we just tell the
+    // server which product to attach the result to once it finishes - that
+    // way it lands even if this tab gets closed before the search is done.
+    const inFlightJobIdPromise = lookupStatus === 'loading' ? lookupJobIdPromiseRef.current : null
     try {
       const { product } = await api.post('/products', {
         name: form.name.trim(),
@@ -179,20 +184,15 @@ export default function AddProductModal({
         sizeType: form.sizeType,
         timeOfDay: form.timeOfDay,
         favourite: form.favourite,
-        ingredients: submittedIngredients,
+        ingredients: form.ingredients,
       })
       onCreated(product)
       handleClose()
-      if (inFlightLookup) {
-        inFlightLookup
-          .then(async (result) => {
-            const additions = resultToAdditions(submittedIngredients, result)
-            for (const tag of additions) {
-              await api.post(`/products/${product.id}/ingredients`, tag).catch(() => {})
-            }
-            onIngredientsReady?.(product.id)
-          })
+      if (inFlightJobIdPromise) {
+        inFlightJobIdPromise
+          .then((jobId) => api.post(`/ingredients/detect/${jobId}/attach`, { productId: product.id }))
           .catch(() => {})
+        onIngredientsReady?.(product.id)
       }
     } catch (err) {
       setError(err.message || 'Could not save this product.')

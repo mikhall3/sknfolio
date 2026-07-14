@@ -52,6 +52,14 @@ export default function Diary() {
     loadActiveProducts()
   }, [loadActiveProducts])
 
+  // Ingredient lookups run on the server in the background - poll while any
+  // product is still searching so the diary picks it up on its own.
+  useEffect(() => {
+    if (!activeProducts.some((p) => p.ingredientLookupStatus === 'PENDING')) return
+    const interval = setInterval(loadActiveProducts, 4000)
+    return () => clearInterval(interval)
+  }, [activeProducts, loadActiveProducts])
+
   function refreshEntry() {
     api.get(`/diary/${dateStr}`).then((res) => setEntry(res.entry))
   }
