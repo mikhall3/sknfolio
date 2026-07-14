@@ -119,11 +119,14 @@ export default function Diary() {
     }, 600)
   }
 
+  // "When do you use it?" is a default/suggestion, not a hard restriction -
+  // any active product can be logged in either period (e.g. a usual morning
+  // product used one evening), it just sorts the usual-period ones first.
   function availableFor(period) {
     const loggedIds = new Set((entry?.[period === 'AM' ? 'am' : 'pm'] || []).map((l) => l.product.id))
-    return activeProducts.filter(
-      (p) => !loggedIds.has(p.id) && (p.timeOfDay === period || p.timeOfDay === 'BOTH')
-    )
+    const notLoggedToday = activeProducts.filter((p) => !loggedIds.has(p.id))
+    const matchesPeriod = (p) => p.timeOfDay === period || p.timeOfDay === 'BOTH'
+    return [...notLoggedToday.filter(matchesPeriod), ...notLoggedToday.filter((p) => !matchesPeriod(p))]
   }
 
   function handleProductUpdated(product) {
