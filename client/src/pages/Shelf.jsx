@@ -9,7 +9,7 @@ import ProductDetailModal from '../components/ProductDetailModal'
 import ConflictBanner from '../components/ConflictBanner'
 import LogTodayPrompt from '../components/LogTodayPrompt'
 import { logFavouriteToday } from '../lib/diaryFavourites'
-import { commonIngredients, pairKey } from '../lib/ingredientStats'
+import { commonIngredients, findConflicts, pairKey } from '../lib/ingredientStats'
 import { CURATED_INGREDIENTS } from '../data/ingredients'
 import { Check, RotateCcw } from 'lucide-react'
 
@@ -85,6 +85,19 @@ export default function Shelf() {
 
   const activeProducts = useMemo(() => (products || []).filter((p) => p.status === 'ACTIVE'), [products])
   const topIngredients = useMemo(() => commonIngredients(activeProducts).slice(0, 5), [activeProducts])
+
+  // An acknowledgement is keyed by the ingredient pair, not a specific
+  // product, so it correctly carries over if you swap one Vitamin C serum
+  // for another - but it should stop showing once neither ingredient is even
+  // on the shelf anymore (e.g. the product that had it was deleted).
+  const currentConflictKeys = useMemo(
+    () => new Set(findConflicts(activeProducts).map((pair) => pairKey(pair.a.key, pair.b.key))),
+    [activeProducts]
+  )
+  const relevantAcknowledgements = useMemo(
+    () => acknowledgements.filter((a) => currentConflictKeys.has(pairKey(a.ingredientA, a.ingredientB))),
+    [acknowledgements, currentConflictKeys]
+  )
 
   function upsertProduct(product) {
     setProducts((prev) => {
@@ -173,11 +186,11 @@ export default function Shelf() {
         />
       )}
 
-      {tab === 'active' && acknowledgements.length > 0 && (
+      {tab === 'active' && relevantAcknowledgements.length > 0 && (
         <div className="rounded-2xl border border-plum-100 bg-plum-50/50 p-4 mb-5">
           <p className="text-xs font-semibold text-plum-400 uppercase tracking-wide mb-2">Reviewed overlaps</p>
           <div className="space-y-2">
-            {acknowledgements.map((a) => {
+            {relevantAcknowledgements.map((a) => {
               const ingA = ingredientByKey.get(a.ingredientA)
               const ingB = ingredientByKey.get(a.ingredientB)
               return (
