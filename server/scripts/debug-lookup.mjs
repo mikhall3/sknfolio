@@ -53,7 +53,7 @@ if (!process.env.ANTHROPIC_API_KEY) {
 
 const anthropic = new Anthropic()
 const stream = anthropic.messages.stream({
-  model: 'claude-opus-4-8',
+  model: 'claude-sonnet-5',
   max_tokens: 8000,
   thinking: { type: 'adaptive' },
   tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
