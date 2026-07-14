@@ -62,20 +62,6 @@ Set "confidence" honestly:
 
 "summary" is one or two plain sentences, written for someone who is not a chemist, explaining what you found and how sure you are. "sources" lists the URLs you actually used.`
 
-// A fast, memory-only first pass: no web search, so it answers in a couple
-// of seconds instead of a minute-plus, at the cost of not being verified
-// against the actual current label. The UI marks anything from this pass as
-// an unconfirmed guess and replaces it once the real (slower) search below
-// confirms or corrects it.
-const QUICK_SYSTEM_PROMPT = `You help identify the likely ingredient list of skincare products for a personal skincare diary app, from general knowledge only - no web search. Answer fast, from what you already know about this product or ones like it. This is a quick, unverified guess that will be double-checked against the real label shortly after, so it is fine to be uncertain - just be honest about it in "confidence" and "summary".
-
-Curated actives to match against (use these exact "key" values whenever a guessed ingredient corresponds to one of them):
-${CURATED_INGREDIENTS.map((i) => `- ${i.key}: ${i.label}`).join('\n')}
-
-For every guessed ingredient that is not in the curated list, still include it with "key": null and a plain-language "label".
-
-Set "confidence" honestly based on how well you actually know this specific product from memory - HIGH only if you're quite sure, LOW if you're mostly inferring from the category. "summary" is one short plain sentence noting this is an unverified quick guess. "sources" should be an empty array - this pass never searches.`
-
 function slugify(label) {
   return label
     .trim()
@@ -94,12 +80,7 @@ function finishJob(jobId, patch) {
   return productId
 }
 
-// Writes a VERIFIED result to a product: any unconfirmed guess from the
-// quick pass is dropped first (it was provisional - if the real search
-// didn't confirm it, it was probably wrong), then the verified ingredients
-// are added fresh, marked verified.
 async function applyResultToProduct(productId, result) {
-  await prisma.productIngredient.deleteMany({ where: { productId, source: 'ai', verified: false } })
   const existingTags = await prisma.productIngredient.findMany({ where: { productId }, select: { key: true } })
   const existingKeys = new Set(existingTags.map((t) => t.key))
   const additions = []
@@ -123,31 +104,6 @@ async function markProductLookupError(productId, message) {
   await prisma.product
     .update({ where: { id: productId }, data: { ingredientLookupStatus: 'ERROR', ingredientLookupError: message } })
     .catch(() => {})
-}
-
-async function runQuickGuess({ name, brand, category }) {
-  const fullName = brand ? `${brand} ${name}` : name
-  const anthropic = new Anthropic()
-  const stream = anthropic.messages.stream({
-    model: 'claude-opus-4-8',
-    max_tokens: 2000,
-    output_config: { format: { type: 'json_schema', schema: RESPONSE_SCHEMA }, effort: 'low' },
-    system: QUICK_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: 'user',
-        content: `Product: ${fullName}${category ? ` (category: ${category})` : ''}${
-          brand ? `\nBrand: ${brand}\nProduct name: ${name}` : ''
-        }`,
-      },
-    ],
-  })
-  const response = await stream.finalMessage()
-  if (response.stop_reason === 'refusal') throw new Error("Couldn't guess this one.")
-  const textBlocks = response.content.filter((block) => block.type === 'text')
-  const finalText = textBlocks[textBlocks.length - 1]?.text
-  if (!finalText) throw new Error('No quick guess available.')
-  return JSON.parse(finalText)
 }
 
 async function runLookup(jobId, { name, brand, category }) {
@@ -220,7 +176,7 @@ async function runLookup(jobId, { name, brand, category }) {
   }
 }
 
-router.post('/detect', async (req, res) => {
+router.post('/detect', (req, res) => {
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(503).json({ error: 'Ingredient lookup is not configured on this server.' })
   }
@@ -234,18 +190,7 @@ router.post('/detect', async (req, res) => {
   jobs.set(jobId, { status: 'pending', createdAt: Date.now() })
   runLookup(jobId, { name, brand, category })
 
-  // The real (verified) search above keeps running in the background - it
-  // takes a while. Meanwhile, answer with a fast unverified guess so the UI
-  // has something to show in seconds rather than a bare spinner.
-  let quickResult = null
-  let quickError = null
-  try {
-    quickResult = await runQuickGuess({ name, brand, category })
-  } catch (err) {
-    quickError = err.message || 'Could not generate a quick guess.'
-  }
-
-  res.status(202).json({ jobId, quickResult, quickError })
+  res.status(202).json({ jobId })
 })
 
 router.get('/detect/:jobId', (req, res) => {

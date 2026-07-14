@@ -29,10 +29,7 @@ export default function ProductCard({ product, onToggleFavourite, onDelete, onMa
             <p className="text-xs text-plum-400 mt-0.5">{category?.label}</p>
             {product.ingredientLookupStatus === 'PENDING' && (
               <p className="flex items-center gap-1 text-[10px] text-plum-400 mt-1">
-                <Loader2 size={10} className="animate-spin" />
-                {(product.ingredientTags || []).some((t) => t.source === 'ai' && !t.verified)
-                  ? 'Confirming ingredients…'
-                  : 'Searching ingredients…'}
+                <Loader2 size={10} className="animate-spin" /> Searching ingredients…
               </p>
             )}
             {product.ingredientLookupStatus === 'ERROR' && (

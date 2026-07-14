@@ -122,14 +122,14 @@ export default function AddProductModal({
     throw new Error('This lookup is taking longer than expected. Try again in a moment.')
   }
 
-  function resultToAdditions(existingIngredients, result, verified) {
+  function resultToAdditions(existingIngredients, result) {
     const existingKeys = new Set(existingIngredients.map((i) => i.key))
     return (result.ingredients || [])
       .map((ing) => {
         const key = ing.key || slugify(ing.label)
         if (!key || existingKeys.has(key)) return null
         existingKeys.add(key)
-        return { key, label: ing.label, confidence: result.confidence, source: 'ai', verified }
+        return { key, label: ing.label, confidence: result.confidence, source: 'ai' }
       })
       .filter(Boolean)
   }
@@ -142,16 +142,7 @@ export default function AddProductModal({
     // it as soon as this function starts, not after the network round trip.
     const jobIdPromise = api
       .post('/ingredients/detect', { name: form.name, brand: form.brand, category: form.category })
-      .then(({ jobId, quickResult }) => {
-        // The quick guess answers in seconds from general knowledge, unverified -
-        // show it right away while the real (slower) verified search keeps going.
-        if (quickResult) {
-          setLookupResult(quickResult)
-          setForm((f) => ({ ...f, ingredients: [...f.ingredients, ...resultToAdditions(f.ingredients, quickResult, false)] }))
-          setLookupStatus('guessed')
-        }
-        return jobId
-      })
+      .then(({ jobId }) => jobId)
     lookupJobIdPromiseRef.current = jobIdPromise
     const attempt = (async () => pollLookup(await jobIdPromise))()
     lookupAttemptRef.current = attempt
@@ -159,16 +150,11 @@ export default function AddProductModal({
       const result = await attempt
       if (lookupAttemptRef.current !== attempt) return // a newer lookup superseded this one
       setLookupResult(result)
-      setForm((f) => {
-        // The verified result replaces any unconfirmed guess - if the real
-        // search didn't confirm a guessed ingredient, it was probably wrong.
-        const withoutGuesses = f.ingredients.filter((i) => !(i.source === 'ai' && i.verified === false))
-        return { ...f, ingredients: [...withoutGuesses, ...resultToAdditions(withoutGuesses, result, true)] }
-      })
+      setForm((f) => ({ ...f, ingredients: [...f.ingredients, ...resultToAdditions(f.ingredients, result)] }))
       setLookupStatus('done')
     } catch (err) {
       if (lookupAttemptRef.current !== attempt) return
-      setLookupError(err.message || 'Could not verify this.')
+      setLookupError(err.message || 'Could not look this up.')
       setLookupStatus('error')
     }
   }
@@ -186,8 +172,7 @@ export default function AddProductModal({
     // server regardless of what this tab does next, so we just tell the
     // server which product to attach the result to once it finishes - that
     // way it lands even if this tab gets closed before the search is done.
-    const inFlightJobIdPromise =
-      lookupStatus === 'loading' || lookupStatus === 'guessed' ? lookupJobIdPromiseRef.current : null
+    const inFlightJobIdPromise = lookupStatus === 'loading' ? lookupJobIdPromiseRef.current : null
     try {
       const { product } = await api.post('/products', {
         name: form.name.trim(),
@@ -381,10 +366,10 @@ export default function AddProductModal({
 
               <button
                 onClick={handleLookup}
-                disabled={lookupStatus === 'loading' || lookupStatus === 'guessed' || !form.name.trim()}
+                disabled={lookupStatus === 'loading' || !form.name.trim()}
                 className="flex items-center gap-1.5 rounded-full border border-plum-200 bg-white text-plum-600 text-xs font-medium px-3 py-1.5 mb-3 hover:border-blush-300 hover:text-blush-600 transition-colors disabled:opacity-50"
               >
-                {lookupStatus === 'loading' || lookupStatus === 'guessed' ? (
+                {lookupStatus === 'loading' ? (
                   <Loader2 size={13} className="animate-spin" />
                 ) : (
                   <Sparkles size={13} />
@@ -393,13 +378,9 @@ export default function AddProductModal({
               </button>
 
               {lookupStatus === 'loading' && (
-                <p className="text-[11px] text-plum-400 -mt-2 mb-3 leading-relaxed">Getting a quick guess…</p>
-              )}
-              {lookupStatus === 'guessed' && (
                 <p className="text-[11px] text-plum-400 -mt-2 mb-3 leading-relaxed">
-                  Quick guess added below (marked unconfirmed) — double-checking it against the real label now. No
-                  need to wait: go ahead and finish adding the product, we'll update these automatically once
-                  confirmed.
+                  Searching — this can take a minute. No need to wait: go ahead and finish adding the product, or
+                  tag ingredients yourself below. We'll fill these in automatically if the search finishes first.
                 </p>
               )}
 
@@ -431,7 +412,7 @@ export default function AddProductModal({
                 <div className={`rounded-xl border p-3 mb-4 text-xs ${CONFIDENCE_STYLE[lookupResult.confidence]}`}>
                   <p className="font-medium mb-1 flex items-center gap-1.5">
                     {lookupResult.confidence === 'LOW' && <AlertTriangle size={12} />}
-                    {lookupStatus === 'guessed' ? 'Quick guess — not yet confirmed' : CONFIDENCE_LABEL[lookupResult.confidence]}
+                    {CONFIDENCE_LABEL[lookupResult.confidence]}
                   </p>
                   <p className="leading-relaxed">{lookupResult.summary}</p>
                   <p className="text-[11px] opacity-70 mt-1.5">
@@ -442,24 +423,18 @@ export default function AddProductModal({
 
               <div className="flex flex-wrap gap-2 mb-4">
                 {CURATED_INGREDIENTS.map((ing) => {
-                  const tag = form.ingredients.find((i) => i.key === ing.key)
-                  const active = Boolean(tag)
-                  const unverified = active && tag.source === 'ai' && tag.verified === false
+                  const active = form.ingredients.some((i) => i.key === ing.key)
                   return (
                     <button
                       key={ing.key}
                       onClick={() => toggleIngredient(ing)}
-                      title={unverified ? 'Unconfirmed guess — still verifying' : undefined}
                       className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                        unverified
-                          ? 'border-dashed border-plum-300 bg-plum-50 text-plum-500'
-                          : active
-                            ? 'border-blush-400 bg-blush-50 text-blush-700'
-                            : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
+                        active
+                          ? 'border-blush-400 bg-blush-50 text-blush-700'
+                          : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
                       }`}
                     >
                       {ing.label}
-                      {unverified && <span className="opacity-60"> ?</span>}
                     </button>
                   )
                 })}
@@ -483,26 +458,17 @@ export default function AddProductModal({
                 <div className="flex flex-wrap gap-2 mt-3">
                   {form.ingredients
                     .filter((i) => !CURATED_INGREDIENTS.some((c) => c.key === i.key))
-                    .map((i) => {
-                      const unverified = i.source === 'ai' && i.verified === false
-                      return (
-                        <span
-                          key={i.key}
-                          title={unverified ? 'Unconfirmed guess — still verifying' : undefined}
-                          className={`rounded-full px-3 py-1.5 text-xs flex items-center gap-1 border ${
-                            unverified
-                              ? 'border-dashed border-plum-300 bg-plum-50 text-plum-500'
-                              : 'bg-plum-50 border-plum-200 text-plum-600'
-                          }`}
-                        >
-                          {i.label}
-                          {unverified && <span className="opacity-60">?</span>}
-                          <button onClick={() => toggleIngredient(i)} className="text-plum-400 hover:text-plum-700">
-                            <X size={12} />
-                          </button>
-                        </span>
-                      )
-                    })}
+                    .map((i) => (
+                      <span
+                        key={i.key}
+                        className="rounded-full bg-plum-50 border border-plum-200 text-plum-600 px-3 py-1.5 text-xs flex items-center gap-1"
+                      >
+                        {i.label}
+                        <button onClick={() => toggleIngredient(i)} className="text-plum-400 hover:text-plum-700">
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
                 </div>
               )}
             </div>

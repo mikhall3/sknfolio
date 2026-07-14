@@ -42,25 +42,11 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
     setRetrying(true)
     setError('')
     try {
-      const { jobId, quickResult } = await api.post('/ingredients/detect', {
+      const { jobId } = await api.post('/ingredients/detect', {
         name: current.name,
         brand: current.brand,
         category: current.category,
       })
-      // Show the fast unverified guess right away, in parallel, while the
-      // real (slower) verified search keeps going in the background.
-      if (quickResult) {
-        const existingKeys = new Set(current.ingredientTags.map((t) => t.key))
-        const additions = (quickResult.ingredients || [])
-          .map((ing) => {
-            const key = ing.key || slugify(ing.label || '')
-            if (!key || existingKeys.has(key)) return null
-            existingKeys.add(key)
-            return { key, label: ing.label, confidence: quickResult.confidence, source: 'ai', verified: false }
-          })
-          .filter(Boolean)
-        await Promise.all(additions.map((tag) => api.post(`/products/${current.id}/ingredients`, tag).catch(() => {})))
-      }
       await api.post(`/ingredients/detect/${jobId}/attach`, { productId: current.id })
       const { product: fresh } = await api.get(`/products/${current.id}`)
       setCurrent(fresh)
@@ -300,10 +286,8 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
           {current.ingredientLookupStatus === 'PENDING' && (
             <p className="flex items-center gap-1.5 text-xs text-plum-500 bg-plum-50 border border-plum-100 rounded-xl px-3 py-2 mb-3">
               <Loader2 size={13} className="animate-spin shrink-0" />
-              {current.ingredientTags.some((t) => t.source === 'ai' && !t.verified)
-                ? "Quick guess added below (marked unconfirmed) — double-checking it against the real label now."
-                : 'Getting a quick guess, then double-checking it against the real label — this can take a minute.'}{' '}
-              Feel free to close this and check back; it'll fill in automatically.
+              Still searching for the real ingredient list — this can take a minute. Feel free to close this and
+              check back; it'll fill in automatically.
             </p>
           )}
           {current.ingredientLookupStatus === 'ERROR' && (
@@ -332,25 +316,19 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
 
           <div className="flex flex-wrap gap-2 mb-3">
             {CURATED_INGREDIENTS.map((ing) => {
-              const tag = current.ingredientTags.find((t) => t.key === ing.key)
-              const active = Boolean(tag)
-              const unverified = active && tag.source === 'ai' && !tag.verified
+              const active = current.ingredientTags.some((t) => t.key === ing.key)
               return (
                 <button
                   key={ing.key}
                   onClick={() => !archived && toggleIngredient(ing)}
                   disabled={archived}
-                  title={unverified ? 'Unconfirmed guess — still verifying' : undefined}
                   className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    unverified
-                      ? 'border-dashed border-plum-300 bg-plum-50 text-plum-500'
-                      : active
-                        ? 'border-blush-400 bg-blush-50 text-blush-700'
-                        : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
+                    active
+                      ? 'border-blush-400 bg-blush-50 text-blush-700'
+                      : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
                   } ${archived ? 'opacity-70' : ''}`}
                 >
                   {ing.label}
-                  {unverified && <span className="opacity-60"> ?</span>}
                 </button>
               )
             })}
@@ -374,28 +352,19 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
           )}
           {customTags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-5">
-              {customTags.map((t) => {
-                const unverified = t.source === 'ai' && !t.verified
-                return (
-                  <span
-                    key={t.id}
-                    title={unverified ? 'Unconfirmed guess — still verifying' : undefined}
-                    className={`rounded-full px-3 py-1.5 text-xs flex items-center gap-1 border ${
-                      unverified
-                        ? 'border-dashed border-plum-300 bg-plum-50 text-plum-500'
-                        : 'bg-plum-50 border-plum-200 text-plum-600'
-                    }`}
-                  >
-                    {t.label}
-                    {unverified && <span className="opacity-60">?</span>}
-                    {!archived && (
-                      <button onClick={() => removeIngredient(t)} className="text-plum-400 hover:text-plum-700">
-                        <X size={12} />
-                      </button>
-                    )}
-                  </span>
-                )
-              })}
+              {customTags.map((t) => (
+                <span
+                  key={t.id}
+                  className="rounded-full bg-plum-50 border border-plum-200 text-plum-600 px-3 py-1.5 text-xs flex items-center gap-1"
+                >
+                  {t.label}
+                  {!archived && (
+                    <button onClick={() => removeIngredient(t)} className="text-plum-400 hover:text-plum-700">
+                      <X size={12} />
+                    </button>
+                  )}
+                </span>
+              ))}
             </div>
           )}
 
