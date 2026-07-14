@@ -30,6 +30,7 @@ const RESPONSE_SCHEMA = {
     summary: { type: 'string' },
     ingredients: {
       type: 'array',
+      maxItems: 5,
       items: {
         type: 'object',
         properties: {
@@ -53,7 +54,7 @@ Search the web for the actual, real ingredient list of the specific product name
 Curated actives to match against (use these exact "key" values whenever a found ingredient corresponds to one of them):
 ${CURATED_INGREDIENTS.map((i) => `- ${i.key}: ${i.label}`).join('\n')}
 
-For every real ingredient you find that is not in the curated list, still include it with "key": null and a plain-language "label".
+Only return ingredients that actually matter to someone tracking their skincare routine - never the full INCI list. Always include every curated active you find (matched by key). Beyond those, add at most a couple of other ingredients only if they are genuinely notable - a standout brand-marketed active, or something with real irritation/conflict potential. Do not include base or vehicle ingredients (water, common emulsifiers, thickeners, silicones, preservatives, pH adjusters, fragrance, etc.) even though they're on the real label - that's noise for this purpose. Return at most 5 ingredients total, most important first.
 
 Set "confidence" honestly:
 - HIGH: you found this specific product's official ingredient list from a reliable source
@@ -68,6 +69,20 @@ function slugify(label) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '')
+}
+
+const CURATED_KEYS = new Set(CURATED_INGREDIENTS.map((i) => i.key))
+
+// Hard backstop independent of prompt compliance: keeps every curated active
+// the model found, then fills any remaining room (up to 5 total) with the
+// next most notable non-curated ingredients - so a product never ends up
+// tagged with its full base/vehicle ingredient list.
+function capIngredients(result, maxTotal = 5) {
+  const ingredients = result.ingredients || []
+  const curated = ingredients.filter((i) => i.key && CURATED_KEYS.has(i.key))
+  const others = ingredients.filter((i) => !(i.key && CURATED_KEYS.has(i.key)))
+  const remaining = Math.max(0, maxTotal - curated.length)
+  return { ...result, ingredients: [...curated, ...others.slice(0, remaining)] }
 }
 
 // Ends a job with the given status/result, preserving any productId that was
@@ -160,6 +175,7 @@ async function runLookup(jobId, { name, brand, category }) {
       if (productId) await markProductLookupError(productId, error)
       return
     }
+    parsed = capIngredients(parsed)
 
     const productId = finishJob(jobId, { status: 'done', result: parsed })
     if (productId) {
