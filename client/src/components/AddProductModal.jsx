@@ -112,10 +112,12 @@ export default function AddProductModal({
   }
 
   async function pollLookup(jobId) {
+    console.log('[lookup] polling started for jobId:', jobId)
     const maxAttempts = 90 // ~3 minutes at 2s intervals
     for (let i = 0; i < maxAttempts; i++) {
       await new Promise((resolve) => setTimeout(resolve, 2000))
       const job = await api.get(`/ingredients/detect/${jobId}`)
+      console.log(`[lookup] poll #${i + 1}:`, job)
       if (job.status === 'done') return job.result
       if (job.status === 'error') throw new Error(job.error)
     }
@@ -140,9 +142,17 @@ export default function AddProductModal({
     // Set synchronously (before any await) so a fast "Add to shelf" click
     // can never race ahead of this ref being populated - handleSubmit reads
     // it as soon as this function starts, not after the network round trip.
+    console.log('[lookup] handleLookup called with:', { name: form.name, brand: form.brand, category: form.category })
     const jobIdPromise = api
       .post('/ingredients/detect', { name: form.name, brand: form.brand, category: form.category })
-      .then(({ jobId }) => jobId)
+      .then((res) => {
+        console.log('[lookup] POST /ingredients/detect response:', res)
+        return res.jobId
+      })
+      .catch((err) => {
+        console.error('[lookup] POST /ingredients/detect FAILED:', err, 'status:', err?.status)
+        throw err
+      })
     lookupJobIdPromiseRef.current = jobIdPromise
     const attempt = (async () => pollLookup(await jobIdPromise))()
     lookupAttemptRef.current = attempt
@@ -153,6 +163,7 @@ export default function AddProductModal({
       setForm((f) => ({ ...f, ingredients: [...f.ingredients, ...resultToAdditions(f.ingredients, result)] }))
       setLookupStatus('done')
     } catch (err) {
+      console.error('[lookup] FINAL ERROR shown to user:', err, 'message:', err?.message, 'status:', err?.status)
       if (lookupAttemptRef.current !== attempt) return
       setLookupError(err.message || 'Could not look this up.')
       setLookupStatus('error')

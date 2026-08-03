@@ -6,11 +6,18 @@ export class ApiError extends Error {
 }
 
 async function request(path, options = {}) {
-  const res = await fetch(`/api${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options,
-  })
+  const url = `/api${path}`
+  let res
+  try {
+    res = await fetch(url, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options,
+    })
+  } catch (networkErr) {
+    console.error('[api] network-level failure calling', options.method || 'GET', url, networkErr)
+    throw networkErr
+  }
 
   if (res.status === 204) return null
 
@@ -18,6 +25,7 @@ async function request(path, options = {}) {
   const body = isJson ? await res.json().catch(() => null) : null
 
   if (!res.ok) {
+    console.error('[api]', options.method || 'GET', url, '->', res.status, body)
     throw new ApiError(body?.error || res.statusText || 'Request failed.', res.status)
   }
   return body
