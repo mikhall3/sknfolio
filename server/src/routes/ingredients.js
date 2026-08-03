@@ -62,7 +62,7 @@ Set "confidence" honestly:
 - MEDIUM: you found a plausible match, but the source was a secondary database, an older formulation, or you are not fully certain it is the exact current product
 - LOW: you could not find a reliable source and are inferring from the product's category or similar products
 
-"summary" is one or two plain sentences, written for someone who is not a chemist, explaining what you found and how sure you are. "sources" lists the URLs you actually used.`
+"summary" is exactly ONE short, plain sentence (under ~20 words) written for someone who is not a chemist, describing the product itself and its standout ingredients - not how you found it. Never name INCIDecoder, or any other specific source/database, in the summary - that's an internal detail, not something to tell the user. "sources" (a separate field, never shown in the summary) lists the URLs you actually used.`
 
 function slugify(label) {
   return label

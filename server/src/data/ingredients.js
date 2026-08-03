@@ -9,4 +9,5 @@ export const CURATED_INGREDIENTS = [
   { key: 'ceramides', label: 'Ceramides', group: 'gentle' },
   { key: 'azelaic-acid', label: 'Azelaic Acid', group: 'gentle' },
   { key: 'pdrn', label: 'PDRN', group: 'gentle' },
+  { key: 'centella-asiatica', label: 'Centella', group: 'gentle' },
 ]

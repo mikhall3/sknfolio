@@ -12,6 +12,7 @@ export const CURATED_INGREDIENTS = [
   { key: 'ceramides', label: 'Ceramides', group: 'gentle', fact: 'Barrier-supporting lipids — safe to pair with actives.' },
   { key: 'azelaic-acid', label: 'Azelaic Acid', group: 'gentle', fact: 'Calming for redness and texture, generally well-tolerated.' },
   { key: 'pdrn', label: 'PDRN', group: 'gentle', fact: 'A regenerating ingredient derived from salmon DNA — low-conflict.' },
+  { key: 'centella-asiatica', label: 'Centella', group: 'gentle', fact: 'Calming for redness and irritation, supports the skin barrier — very low conflict risk.' },
 ]
 
 export function slugify(label) {
