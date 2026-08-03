@@ -16,11 +16,11 @@ export default function ProductCard({ product, onToggleFavourite, onDelete, onMa
   return (
     <div
       onClick={() => onOpenDetail(product)}
-      className="bg-white border border-plum-100 rounded-2xl p-3.5 flex flex-col gap-2.5 cursor-pointer hover:border-blush-200 transition-colors"
+      className="bg-white border border-plum-100 border-l-[3px] border-l-blush-400 rounded-2xl p-3.5 flex flex-col gap-2.5 cursor-pointer hover:border-blush-200 transition-colors"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-blush-50 text-blush-500 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-blush-500 text-white flex items-center justify-center shrink-0">
             {Icon && <Icon size={16} strokeWidth={1.75} />}
           </div>
           <div className="min-w-0">
@@ -66,13 +66,16 @@ export default function ProductCard({ product, onToggleFavourite, onDelete, onMa
               />
             ))}
             <span className="text-[11px] text-plum-400 ml-1">
-              {RETIRE_LABEL[product.retireReason]} · lasted {daysBetween(product.dateAdded, product.archivedAt)}d
+              {RETIRE_LABEL[product.retireReason]} · lasted{' '}
+              <span className="font-semibold text-blush-500">{daysBetween(product.dateAdded, product.archivedAt)}d</span>
             </span>
           </div>
           {product.emptyComment && <p className="text-xs text-plum-500 italic leading-snug">"{product.emptyComment}"</p>}
         </div>
       ) : (
-        <p className="text-[11px] text-plum-400">On shelf for {daysBetween(product.dateAdded)} days</p>
+        <p className="text-[11px] text-plum-400">
+          On shelf for <span className="font-semibold text-blush-500">{daysBetween(product.dateAdded)} days</span>
+        </p>
       )}
 
       <div className="flex items-center justify-between">

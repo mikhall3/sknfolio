@@ -235,7 +235,9 @@ export default function Shelf() {
 
       {categoryCounts.length > 1 && (
         <div className="flex flex-wrap items-center gap-1.5 mb-5">
-          <span className="text-xs text-plum-400 mr-0.5">Category:</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide bg-blush-500 text-white rounded-full px-2 py-1 mr-0.5">
+            Category
+          </span>
           {categoryCounts.map((c) => {
             const active = categoryFilter === c.category
             return (
@@ -258,7 +260,9 @@ export default function Shelf() {
 
       {tab === 'active' && topIngredients.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 mb-5">
-          <span className="text-xs text-plum-400 mr-0.5">Most used:</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide bg-blush-500 text-white rounded-full px-2 py-1 mr-0.5">
+            Most used
+          </span>
           {topIngredients.map((ing) => {
             const active = ingredientFilter === ing.key
             return (

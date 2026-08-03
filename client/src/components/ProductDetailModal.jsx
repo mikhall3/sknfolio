@@ -231,7 +231,8 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
               </div>
 
               <p className="text-xs text-plum-400 mb-4">
-                On your shelf since {shortDate(current.dateAdded)} — {daysBetween(current.dateAdded)} days
+                On your shelf since {shortDate(current.dateAdded)} —{' '}
+                <span className="font-semibold text-blush-500">{daysBetween(current.dateAdded)} days</span>
               </p>
 
               <button
@@ -267,7 +268,7 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
               )}
               <p className="text-[11px] text-plum-400">
                 {shortDate(current.dateAdded)} → {shortDate(current.archivedAt)} · lasted{' '}
-                {daysBetween(current.dateAdded, current.archivedAt)} days
+                <span className="font-semibold text-blush-500">{daysBetween(current.dateAdded, current.archivedAt)} days</span>
               </p>
             </div>
           )}

@@ -124,11 +124,11 @@ export default function Insights() {
       <h1 className="font-display text-2xl font-semibold text-plum-900 mb-1">Insights</h1>
 
       <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4 flex items-center gap-3">
-        <div className="w-11 h-11 rounded-2xl bg-blush-100 text-blush-500 flex items-center justify-center shrink-0">
+        <div className="w-11 h-11 rounded-2xl bg-blush-500 text-white flex items-center justify-center shrink-0">
           <Flame size={20} fill={data.streak.count > 0 ? 'currentColor' : 'none'} strokeWidth={1.75} />
         </div>
         <div>
-          <p className="font-display text-xl font-semibold text-plum-900">
+          <p className="font-display text-2xl font-semibold text-blush-500">
             {data.streak.count} day{data.streak.count === 1 ? '' : 's'}
           </p>
           <p className="text-xs text-plum-400">
