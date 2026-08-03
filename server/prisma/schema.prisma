@@ -184,6 +184,17 @@ model DiaryEntry {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // A user-triggered read on the day's routine - never generated
+  // automatically. routineReviewSignature fingerprints the exact set of
+  // logged products + note text it was generated from, so the client can
+  // tell when the day has changed since and offer a refresh instead of
+  // silently showing a stale take.
+  routineReviewSummary     String?
+  routineReviewPairing     String?
+  routineReviewTomorrow    String?
+  routineReviewGeneratedAt DateTime?
+  routineReviewSignature   String?
+
   logs DiaryProductLog[]
 
   @@unique([userId, date])

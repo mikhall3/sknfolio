@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Loader2, Activity } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Activity, Sparkles, RotateCcw } from 'lucide-react'
 import { api } from '../lib/api'
 import { localDateString, addDays, friendlyDate } from '../lib/dates'
 import DiarySection from '../components/DiarySection'
@@ -27,11 +27,15 @@ export default function Diary() {
   const [trackingOpen, setTrackingOpen] = useState(false)
   const [detailProduct, setDetailProduct] = useState(null)
   const [emptyingProduct, setEmptyingProduct] = useState(null)
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewError, setReviewError] = useState('')
   const noteTimer = useRef(null)
 
   useEffect(() => {
     let cancelled = false
     setEntry(null)
+    setReviewLoading(false)
+    setReviewError('')
     const loader =
       dateStr === TODAY ? api.post(`/diary/${dateStr}/prime-favourites`) : api.get(`/diary/${dateStr}`)
     loader.then((res) => {
@@ -109,6 +113,19 @@ export default function Diary() {
 
   async function handleLockIn(period, productIds) {
     await api.post('/products/reorder', { period, productIds })
+  }
+
+  async function generateReview() {
+    setReviewLoading(true)
+    setReviewError('')
+    try {
+      const { entry: updated } = await api.post(`/diary/${dateStr}/review`, {})
+      setEntry(updated)
+    } catch (err) {
+      setReviewError(err.message || 'Could not generate a review right now.')
+    } finally {
+      setReviewLoading(false)
+    }
   }
 
   function handleNoteChange(value) {
@@ -231,6 +248,61 @@ export default function Diary() {
               <Activity size={13} /> Track a change on skin
             </button>
           </div>
+
+          {entry.am.length + entry.pm.length > 0 && (
+            <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="font-display text-lg font-semibold text-plum-900">Review today's routine</h2>
+                {entry.review && (
+                  <button
+                    onClick={generateReview}
+                    disabled={reviewLoading}
+                    title="Refresh review"
+                    className="text-plum-400 hover:text-blush-600 disabled:opacity-50 shrink-0"
+                  >
+                    <RotateCcw size={14} className={reviewLoading ? 'animate-spin' : ''} />
+                  </button>
+                )}
+              </div>
+
+              {!entry.review ? (
+                <div>
+                  <p className="text-xs text-plum-500 mb-3 leading-relaxed">
+                    Get a quick read on today's actives, how they paired, and a tip for tomorrow.
+                  </p>
+                  <button
+                    onClick={generateReview}
+                    disabled={reviewLoading}
+                    className="flex items-center gap-1.5 rounded-full bg-blush-500 text-white text-xs font-medium px-4 py-2 hover:bg-blush-600 transition-colors disabled:opacity-50"
+                  >
+                    {reviewLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                    {reviewLoading ? 'Reviewing...' : "Review today's routine"}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-plum-800 leading-relaxed">{entry.review.summary}</p>
+                  {entry.review.pairing && (
+                    <p className="text-xs text-blush-600 leading-relaxed">{entry.review.pairing}</p>
+                  )}
+                  <p className="text-xs text-plum-600 leading-relaxed">
+                    <span className="font-medium text-plum-700">Tomorrow — </span>
+                    {entry.review.tomorrow}
+                  </p>
+                  {entry.review.stale && (
+                    <button
+                      onClick={generateReview}
+                      disabled={reviewLoading}
+                      className="text-[11px] font-medium text-plum-500 hover:text-blush-600 disabled:opacity-50"
+                    >
+                      {reviewLoading ? 'Refreshing…' : "Today's routine or notes changed — tap to refresh"}
+                    </button>
+                  )}
+                </div>
+              )}
+              {reviewError && <p className="text-xs text-blush-600 mt-2">{reviewError}</p>}
+            </div>
+          )}
         </div>
       )}
 
