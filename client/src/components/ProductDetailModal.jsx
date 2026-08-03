@@ -17,6 +17,11 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState('')
   const [retrying, setRetrying] = useState(false)
+  // Once ingredients are found, the manual palette and lookup button are
+  // just clutter for something already answered - collapse to a clean list
+  // and only bring the full picker back if there's nothing tagged yet, or
+  // the user explicitly asks to edit.
+  const [editingIngredients, setEditingIngredients] = useState(product?.ingredientTags?.length === 0)
 
   // The ingredient lookup runs on the server independently of this modal, so
   // poll while it's still going - this is what surfaces "still searching"
@@ -62,6 +67,8 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
   const category = CATEGORY_MAP[current.category]
   const CategoryIcon = category?.icon
   const customTags = current.ingredientTags.filter((t) => !CURATED_INGREDIENTS.some((c) => c.key === t.key))
+  const hasTags = current.ingredientTags.length > 0
+  const showPalette = editingIngredients || !hasTags
 
   // What's known about each tagged ingredient - a curated fact, a flagged
   // concern, or both. Ingredients with neither stay plain tags above, nothing
@@ -289,7 +296,17 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
             </div>
           )}
 
-          <p className="text-xs font-medium text-plum-500 mb-1.5">Ingredients</p>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-xs font-medium text-plum-500">Ingredients</p>
+            {!archived && hasTags && (
+              <button
+                onClick={() => setEditingIngredients((v) => !v)}
+                className="text-xs font-medium text-blush-500 hover:text-blush-700"
+              >
+                {editingIngredients ? 'Done' : 'Edit'}
+              </button>
+            )}
+          </div>
 
           {current.ingredientLookupStatus === 'PENDING' && (
             <p className="flex items-center gap-1.5 text-xs text-plum-500 bg-plum-50 border border-plum-100 rounded-xl px-3 py-2 mb-3">
@@ -311,68 +328,91 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
               </button>
             </div>
           )}
-          {!archived && current.ingredientLookupStatus !== 'PENDING' && current.ingredientLookupStatus !== 'ERROR' && (
-            <button
-              onClick={retryLookup}
-              disabled={retrying}
-              className="flex items-center gap-1.5 rounded-full border border-plum-200 bg-white text-plum-600 text-xs font-medium px-3 py-1.5 mb-3 hover:border-blush-300 hover:text-blush-600 transition-colors disabled:opacity-50"
-            >
-              {retrying ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-              Look up real ingredients
-            </button>
-          )}
 
-          <div className="flex flex-wrap gap-2 mb-3">
-            {CURATED_INGREDIENTS.map((ing) => {
-              const tag = current.ingredientTags.find((t) => t.key === ing.key)
-              const active = Boolean(tag)
-              return (
+          {showPalette ? (
+            <>
+              {!archived && current.ingredientLookupStatus !== 'PENDING' && current.ingredientLookupStatus !== 'ERROR' && (
                 <button
-                  key={ing.key}
-                  onClick={() => !archived && toggleIngredient(ing)}
-                  disabled={archived}
-                  title={tag?.ewgConcern ? `Worth knowing: ${tag.ewgConcern}` : undefined}
-                  className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    active
-                      ? 'border-blush-400 bg-blush-50 text-blush-700'
-                      : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
-                  } ${archived ? 'opacity-70' : ''}`}
+                  onClick={retryLookup}
+                  disabled={retrying}
+                  className="flex items-center gap-1.5 rounded-full border border-blush-300 bg-white text-blush-600 text-xs font-medium px-3 py-1.5 mb-3 hover:bg-blush-50 transition-colors disabled:opacity-50"
                 >
-                  {ing.label}
-                  {tag?.ewgConcern && <ShieldAlert size={12} className="text-plum-400" />}
+                  {retrying ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                  {hasTags ? 'Redo ingredient lookup' : 'Look up real ingredients'}
                 </button>
-              )
-            })}
-          </div>
-          {!archived && (
-            <div className="flex gap-2 mb-3">
-              <input
-                value={freeform}
-                onChange={(e) => setFreeform(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addFreeformIngredient())}
-                placeholder="Add another ingredient"
-                className="flex-1 rounded-xl border border-plum-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blush-300 focus:border-transparent"
-              />
-              <button
-                onClick={addFreeformIngredient}
-                className="rounded-xl bg-plum-100 text-plum-600 px-3 hover:bg-plum-200 transition-colors"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          )}
-          {customTags.length > 0 && (
+              )}
+
+              <div className="flex flex-wrap gap-2 mb-3">
+                {CURATED_INGREDIENTS.map((ing) => {
+                  const tag = current.ingredientTags.find((t) => t.key === ing.key)
+                  const active = Boolean(tag)
+                  return (
+                    <button
+                      key={ing.key}
+                      onClick={() => !archived && toggleIngredient(ing)}
+                      disabled={archived}
+                      title={tag?.ewgConcern ? `Worth knowing: ${tag.ewgConcern}` : undefined}
+                      className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        active
+                          ? 'border-blush-400 bg-blush-50 text-blush-700'
+                          : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
+                      } ${archived ? 'opacity-70' : ''}`}
+                    >
+                      {ing.label}
+                      {tag?.ewgConcern && <ShieldAlert size={12} className="text-blush-400" />}
+                    </button>
+                  )
+                })}
+              </div>
+              {!archived && (
+                <div className="flex gap-2 mb-3">
+                  <input
+                    value={freeform}
+                    onChange={(e) => setFreeform(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addFreeformIngredient())}
+                    placeholder="Add another ingredient"
+                    className="flex-1 rounded-xl border border-plum-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blush-300 focus:border-transparent"
+                  />
+                  <button
+                    onClick={addFreeformIngredient}
+                    className="rounded-xl bg-blush-50 text-blush-600 px-3 hover:bg-blush-100 transition-colors"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              )}
+              {customTags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-5">
+                  {customTags.map((t) => (
+                    <span
+                      key={t.id}
+                      title={t.ewgConcern ? `Worth knowing: ${t.ewgConcern}` : undefined}
+                      className="rounded-full border border-blush-400 bg-blush-50 text-blush-700 px-3 py-1.5 text-xs flex items-center gap-1"
+                    >
+                      {t.label}
+                      {t.ewgConcern && <ShieldAlert size={12} className="text-blush-400" />}
+                      {!archived && (
+                        <button onClick={() => removeIngredient(t)} className="text-blush-400 hover:text-blush-800">
+                          <X size={12} />
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
             <div className="flex flex-wrap gap-2 mb-5">
-              {customTags.map((t) => (
+              {current.ingredientTags.map((t) => (
                 <span
                   key={t.id}
                   title={t.ewgConcern ? `Worth knowing: ${t.ewgConcern}` : undefined}
-                  className="rounded-full bg-plum-50 border border-plum-200 text-plum-600 px-3 py-1.5 text-xs flex items-center gap-1"
+                  className="rounded-full border border-blush-300 bg-blush-50 text-blush-700 px-3 py-1.5 text-xs font-medium flex items-center gap-1"
                 >
                   {t.label}
-                  {t.ewgConcern && <ShieldAlert size={12} className="text-plum-400" />}
+                  {t.ewgConcern && <ShieldAlert size={12} className="text-blush-500" />}
                   {!archived && (
-                    <button onClick={() => removeIngredient(t)} className="text-plum-400 hover:text-plum-700">
+                    <button onClick={() => removeIngredient(t)} className="text-blush-400 hover:text-blush-800">
                       <X size={12} />
                     </button>
                   )}
@@ -382,7 +422,7 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
           )}
 
           {(current.ingredientLookupSummary || learnItems.length > 0) && (
-            <div className="rounded-xl bg-white border border-plum-100 p-3 mb-5 space-y-2.5">
+            <div className="rounded-xl bg-blush-50/50 border border-blush-100 p-3 mb-5 space-y-2.5">
               <div className="flex items-center gap-1.5">
                 <Sparkles size={13} className="text-blush-500 shrink-0" strokeWidth={1.75} />
                 <p className="text-xs font-semibold text-plum-800">What's in this</p>
@@ -396,7 +436,7 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
                     <div key={i.key}>
                       {i.fact && (
                         <div className="flex items-start gap-1.5">
-                          <span className="w-1 h-1 rounded-full bg-plum-300 shrink-0 mt-[5px]" />
+                          <span className="w-1 h-1 rounded-full bg-blush-300 shrink-0 mt-[5px]" />
                           <p className="text-xs leading-relaxed">
                             <span className="font-medium text-plum-800">{i.label}</span>
                             <span className="text-plum-500"> — {i.fact}</span>

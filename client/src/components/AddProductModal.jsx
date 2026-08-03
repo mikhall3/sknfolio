@@ -372,7 +372,7 @@ export default function AddProductModal({
               <button
                 onClick={handleLookup}
                 disabled={lookupStatus === 'loading' || !form.name.trim()}
-                className="flex items-center gap-1.5 rounded-full border border-plum-200 bg-white text-plum-600 text-xs font-medium px-3 py-1.5 mb-3 hover:border-blush-300 hover:text-blush-600 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-full border border-blush-300 bg-white text-blush-600 text-xs font-medium px-3 py-1.5 mb-3 hover:bg-blush-50 transition-colors disabled:opacity-50"
               >
                 {lookupStatus === 'loading' ? (
                   <Loader2 size={13} className="animate-spin" />
@@ -442,7 +442,7 @@ export default function AddProductModal({
                       }`}
                     >
                       {ing.label}
-                      {tag?.ewgConcern && <ShieldAlert size={12} className="text-plum-400" />}
+                      {tag?.ewgConcern && <ShieldAlert size={12} className="text-blush-400" />}
                     </button>
                   )
                 })}
@@ -457,7 +457,7 @@ export default function AddProductModal({
                 />
                 <button
                   onClick={addFreeformIngredient}
-                  className="rounded-xl bg-plum-100 text-plum-600 px-3 hover:bg-plum-200 transition-colors"
+                  className="rounded-xl bg-blush-50 text-blush-600 px-3 hover:bg-blush-100 transition-colors"
                 >
                   <Plus size={16} />
                 </button>
@@ -470,11 +470,11 @@ export default function AddProductModal({
                       <span
                         key={i.key}
                         title={i.ewgConcern ? `Worth knowing: ${i.ewgConcern}` : undefined}
-                        className="rounded-full bg-plum-50 border border-plum-200 text-plum-600 px-3 py-1.5 text-xs flex items-center gap-1"
+                        className="rounded-full border border-blush-400 bg-blush-50 text-blush-700 px-3 py-1.5 text-xs flex items-center gap-1"
                       >
                         {i.label}
-                        {i.ewgConcern && <ShieldAlert size={12} className="text-plum-400" />}
-                        <button onClick={() => toggleIngredient(i)} className="text-plum-400 hover:text-plum-700">
+                        {i.ewgConcern && <ShieldAlert size={12} className="text-blush-400" />}
+                        <button onClick={() => toggleIngredient(i)} className="text-blush-400 hover:text-blush-800">
                           <X size={12} />
                         </button>
                       </span>
