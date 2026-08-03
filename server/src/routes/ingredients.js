@@ -30,7 +30,6 @@ const RESPONSE_SCHEMA = {
     summary: { type: 'string' },
     ingredients: {
       type: 'array',
-      maxItems: 5,
       items: {
         type: 'object',
         properties: {
@@ -188,11 +187,7 @@ async function runLookup(jobId, { name, brand, category }) {
     }
   } catch (err) {
     console.error('Ingredient detection failed:', err)
-    // TEMPORARY: exposing the raw error to the client to diagnose a live
-    // issue where nothing was showing up in server-side logs. Revert to the
-    // generic message once root-caused.
-    const rawDetail = err?.error?.error?.message || err?.message || String(err)
-    const error = `Ingredient lookup failed: ${rawDetail}`
+    const error = 'Ingredient lookup failed. Try tagging manually.'
     const productId = finishJob(jobId, { status: 'error', error })
     if (productId) await markProductLookupError(productId, error)
   }
