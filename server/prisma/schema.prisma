@@ -66,11 +66,6 @@ enum Category {
   EYE_PATCHES
 }
 
-enum SizeType {
-  SAMPLE
-  ONE_TIME_USE
-}
-
 enum TimeOfDay {
   AM
   PM
@@ -104,8 +99,6 @@ model Product {
   category  Category
   dateAdded DateTime      @default(now())
   status    ProductStatus @default(ACTIVE)
-  fillLevel Int           @default(100)
-  sizeType  SizeType?
   favourite Boolean       @default(false)
   timeOfDay TimeOfDay     @default(BOTH)
   amOrder   Int?

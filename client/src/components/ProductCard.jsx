@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Star, Trash2, Sunrise, Moon, SunMoon, PackageCheck, Loader2, AlertTriangle } from 'lucide-react'
-import { CATEGORY_MAP, SIZE_TYPES } from '../data/categories'
+import { CATEGORY_MAP } from '../data/categories'
+import { daysBetween } from '../lib/dates'
 
 const TIME_ICON = { AM: Sunrise, PM: Moon, BOTH: SunMoon }
 const RETIRE_LABEL = { REBOUGHT: 'Rebought', REPLACED: 'Replaced', RETIRED: 'Retired' }
-const SIZE_TYPE_MAP = Object.fromEntries(SIZE_TYPES.map((s) => [s.value, s]))
 
 export default function ProductCard({ product, onToggleFavourite, onDelete, onMarkEmpty, onOpenDetail }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -65,21 +65,14 @@ export default function ProductCard({ product, onToggleFavourite, onDelete, onMa
                 strokeWidth={1.5}
               />
             ))}
-            <span className="text-[11px] text-plum-400 ml-1">{RETIRE_LABEL[product.retireReason]}</span>
+            <span className="text-[11px] text-plum-400 ml-1">
+              {RETIRE_LABEL[product.retireReason]} · lasted {daysBetween(product.dateAdded, product.archivedAt)}d
+            </span>
           </div>
           {product.emptyComment && <p className="text-xs text-plum-500 italic leading-snug">"{product.emptyComment}"</p>}
         </div>
-      ) : product.sizeType ? (
-        <span className="inline-flex items-center self-start rounded-full bg-plum-50 text-plum-500 text-[11px] px-2.5 py-1">
-          {SIZE_TYPE_MAP[product.sizeType]?.label}
-        </span>
       ) : (
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 rounded-full bg-plum-50 overflow-hidden">
-            <div className="h-full bg-blush-300 rounded-full" style={{ width: `${product.fillLevel}%` }} />
-          </div>
-          <span className="text-[11px] text-plum-400 tabular-nums">{product.fillLevel}%</span>
-        </div>
+        <p className="text-[11px] text-plum-400">On shelf for {daysBetween(product.dateAdded)} days</p>
       )}
 
       <div className="flex items-center justify-between">

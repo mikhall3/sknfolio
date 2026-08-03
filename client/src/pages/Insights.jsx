@@ -322,7 +322,7 @@ export default function Insights() {
                       className="w-full flex items-center justify-between gap-2 py-2.5 text-left"
                     >
                       <span className="flex items-center gap-1.5 text-sm font-medium text-plum-800">
-                        {ing.concern && <ShieldAlert size={12} className="text-blush-500 shrink-0" strokeWidth={1.75} />}
+                        {ing.concern && <ShieldAlert size={14} className="text-blush-400 shrink-0" strokeWidth={2} />}
                         {ing.label}
                       </span>
                       {expanded ? (

@@ -44,18 +44,6 @@ export const CATEGORIES = [
 
 export const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map((c) => [c.value, c]))
 
-export const FILL_LEVELS = [
-  { value: 100, label: 'Full' },
-  { value: 75, label: '75%' },
-  { value: 50, label: '50%' },
-  { value: 25, label: '25%' },
-]
-
-export const SIZE_TYPES = [
-  { value: 'ONE_TIME_USE', label: 'One-time use' },
-  { value: 'SAMPLE', label: 'Sample size' },
-]
-
 export const TIME_OF_DAY_OPTIONS = [
   { value: 'AM', label: 'Morning' },
   { value: 'PM', label: 'Evening' },

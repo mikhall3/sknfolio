@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { X, Star, Trash2, PackageCheck, Plus, Loader2, Sparkles, RotateCcw, ShieldAlert } from 'lucide-react'
-import { CATEGORIES, CATEGORY_MAP, FILL_LEVELS, SIZE_TYPES, TIME_OF_DAY_OPTIONS } from '../data/categories'
+import { CATEGORIES, CATEGORY_MAP, TIME_OF_DAY_OPTIONS } from '../data/categories'
 import { CURATED_INGREDIENTS, slugify } from '../data/ingredients'
-import { friendlyDate } from '../lib/dates'
+import { friendlyDate, shortDate, daysBetween } from '../lib/dates'
 import { api } from '../lib/api'
 
 const RETIRE_LABEL = { REBOUGHT: 'Rebought', REPLACED: 'Replaced', RETIRED: 'Retired' }
@@ -230,37 +230,9 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
                 ))}
               </div>
 
-              <p className="text-xs font-medium text-plum-500 mb-1.5">How full is it?</p>
-              <div className="grid grid-cols-4 gap-1.5 mb-2">
-                {FILL_LEVELS.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => patch({ fillLevel: value, sizeType: null })}
-                    className={`rounded-xl border px-1.5 py-2 text-xs font-medium transition-colors ${
-                      current.fillLevel === value && !current.sizeType
-                        ? 'border-blush-400 bg-blush-50 text-blush-700'
-                        : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-1.5 mb-4">
-                {SIZE_TYPES.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => patch({ sizeType: value, fillLevel: 100 })}
-                    className={`rounded-xl border px-2 py-2 text-xs font-medium transition-colors ${
-                      current.sizeType === value
-                        ? 'border-blush-400 bg-blush-50 text-blush-700'
-                        : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              <p className="text-xs text-plum-400 mb-4">
+                On your shelf since {shortDate(current.dateAdded)} — {daysBetween(current.dateAdded)} days
+              </p>
 
               <button
                 onClick={() => patch({ favourite: !current.favourite })}
@@ -293,6 +265,10 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
               {current.emptyComment && (
                 <p className="text-xs text-plum-500 italic leading-snug">"{current.emptyComment}"</p>
               )}
+              <p className="text-[11px] text-plum-400">
+                {shortDate(current.dateAdded)} → {shortDate(current.archivedAt)} · lasted{' '}
+                {daysBetween(current.dateAdded, current.archivedAt)} days
+              </p>
             </div>
           )}
 
@@ -445,10 +421,10 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
                       )}
                       {i.concern && (
                         <div className="flex items-start gap-1.5">
-                          <ShieldAlert size={12} className="text-blush-500 shrink-0 mt-0.5" strokeWidth={1.75} />
+                          <ShieldAlert size={14} className="text-blush-400 shrink-0 mt-px" strokeWidth={2} />
                           <p className="text-xs leading-relaxed">
-                            {!i.fact && <span className="font-medium text-plum-800">{i.label}</span>}
-                            <span className="text-blush-600"> {i.concern}</span>
+                            {!i.fact && <span className="font-medium text-plum-800">{i.label} — </span>}
+                            <span className="text-blush-600">{i.concern}</span>
                           </p>
                         </div>
                       )}

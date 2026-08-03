@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { X, ChevronLeft, ChevronRight, Check, Loader2, Plus, Sparkles, AlertTriangle, ShieldAlert } from 'lucide-react'
-import { CATEGORIES, FILL_LEVELS, SIZE_TYPES, TIME_OF_DAY_OPTIONS } from '../data/categories'
+import { CATEGORIES, TIME_OF_DAY_OPTIONS } from '../data/categories'
 import { CURATED_INGREDIENTS, slugify } from '../data/ingredients'
 import { findShelfConflicts } from '../lib/ingredientStats'
 import { productLabel } from '../lib/productLabel'
@@ -17,7 +17,7 @@ const CONFIDENCE_LABEL = {
   LOW: 'Low confidence — please verify against the label',
 }
 
-const STEPS = ['category', 'name', 'fill', 'timing', 'regular', 'ingredients']
+const STEPS = ['category', 'name', 'timing', 'regular', 'ingredients']
 
 export default function AddProductModal({
   open,
@@ -35,8 +35,6 @@ export default function AddProductModal({
     category: defaultCategory || null,
     brand: '',
     name: '',
-    fillLevel: 100,
-    sizeType: null,
     timeOfDay: defaultTimeOfDay || null,
     favourite: false,
     ingredients: [],
@@ -61,7 +59,6 @@ export default function AddProductModal({
   function canAdvance() {
     if (step === 'category') return Boolean(form.category)
     if (step === 'name') return form.name.trim().length > 0
-    if (step === 'fill') return true
     if (step === 'timing') return Boolean(form.timeOfDay)
     return true
   }
@@ -96,8 +93,6 @@ export default function AddProductModal({
       category: defaultCategory || null,
       brand: '',
       name: '',
-      fillLevel: 100,
-      sizeType: null,
       timeOfDay: defaultTimeOfDay || null,
       favourite: false,
       ingredients: [],
@@ -188,8 +183,6 @@ export default function AddProductModal({
         name: form.name.trim(),
         brand: form.brand.trim(),
         category: form.category,
-        fillLevel: form.fillLevel,
-        sizeType: form.sizeType,
         timeOfDay: form.timeOfDay,
         favourite: form.favourite,
         ingredients: form.ingredients,
@@ -273,46 +266,6 @@ export default function AddProductModal({
                 placeholder="e.g. Milky Toner"
                 className="w-full rounded-xl border border-plum-200 bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blush-300 focus:border-transparent"
               />
-            </div>
-          )}
-
-          {step === 'fill' && (
-            <div>
-              <h2 className="font-display text-2xl font-semibold mb-1">How full is it?</h2>
-              <p className="text-sm text-plum-500 mb-5">
-                If it's already open, this keeps "time to empty" accurate.
-              </p>
-              <div className="grid grid-cols-2 gap-2.5 mb-2.5">
-                {FILL_LEVELS.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => setForm((f) => ({ ...f, fillLevel: value, sizeType: null }))}
-                    className={`rounded-2xl border px-4 py-3 text-sm font-medium transition-colors ${
-                      form.fillLevel === value && !form.sizeType
-                        ? 'border-blush-400 bg-blush-50 text-blush-700'
-                        : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-plum-400 mb-2">Or, if it's not a regular full-size product:</p>
-              <div className="grid grid-cols-2 gap-2.5">
-                {SIZE_TYPES.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => setForm((f) => ({ ...f, sizeType: value, fillLevel: 100 }))}
-                    className={`rounded-2xl border px-4 py-3 text-sm font-medium transition-colors ${
-                      form.sizeType === value
-                        ? 'border-blush-400 bg-blush-50 text-blush-700'
-                        : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 

@@ -12,6 +12,19 @@ export function addDays(dateStr, delta) {
   return localDateString(date)
 }
 
+// Compact absolute date for things like "added" / "finished" timestamps,
+// where relative wording (Today/Yesterday) would be more confusing than
+// helpful once a product's been sitting on the shelf for a while.
+export function shortDate(isoOrDateStr) {
+  return new Date(isoOrDateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+export function daysBetween(startIso, endIso) {
+  const start = new Date(startIso)
+  const end = endIso ? new Date(endIso) : new Date()
+  return Math.max(0, Math.round((end - start) / 86400000))
+}
+
 export function friendlyDate(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number)
   const date = new Date(y, m - 1, d)
