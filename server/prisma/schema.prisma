@@ -166,6 +166,10 @@ model ProductIngredient {
   // confirmed by a real web search yet - true for manual tags and for AI
   // tags once the background verified search confirms them.
   verified   Boolean               @default(true)
+  // A short, optional note when EWG Skin Deep flags a notable hazard concern
+  // for this ingredient - EWG's opinion, not a scientific consensus, so it's
+  // always shown attributed to them rather than as a fact.
+  ewgConcern String?
   createdAt  DateTime              @default(now())
 
   @@unique([productId, key])

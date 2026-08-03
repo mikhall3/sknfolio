@@ -35,8 +35,9 @@ const RESPONSE_SCHEMA = {
         properties: {
           label: { type: 'string' },
           key: { type: ['string', 'null'] },
+          ewgConcern: { type: ['string', 'null'] },
         },
-        required: ['label', 'key'],
+        required: ['label', 'key', 'ewgConcern'],
         additionalProperties: false,
       },
     },
@@ -56,6 +57,8 @@ Curated actives to match against (use these exact "key" values whenever a found 
 ${CURATED_INGREDIENTS.map((i) => `- ${i.key}: ${i.label}`).join('\n')}
 
 Only return ingredients that actually matter to someone tracking their skincare routine - never the full INCI list. Always include every curated active you find (matched by key). Beyond those, add at most a couple of other ingredients only if they are genuinely notable - a standout brand-marketed active, or something with real irritation/conflict potential. Do not include base or vehicle ingredients (water, common emulsifiers, thickeners, silicones, preservatives, pH adjusters, fragrance, etc.) even though they're on the real label - that's noise for this purpose. Return at most 5 ingredients total, most important first.
+
+For each ingredient, also set "ewgConcern": if EWG's Skin Deep database (ewg.org/skindeep) is known to flag that specific ingredient for a notable hazard concern (e.g. endocrine disruption, allergen, contamination risk), summarize it in under 15 words, always framed as EWG's assessment (e.g. "EWG flags this for possible endocrine disruption"), not as established fact. Use your knowledge of EWG's well-known ratings for common ingredients rather than spending a search on every single one. If EWG does not notably flag an ingredient, or you are not confident it does, set "ewgConcern" to null - never guess or invent a concern.
 
 Set "confidence" honestly:
 - HIGH: you found this specific product's official ingredient list from a reliable source
@@ -104,7 +107,15 @@ async function applyResultToProduct(productId, result) {
     const key = ing.key || slugify(ing.label || '')
     if (!key || existingKeys.has(key)) continue
     existingKeys.add(key)
-    additions.push({ productId, key, label: ing.label, confidence: result.confidence, source: 'ai', verified: true })
+    additions.push({
+      productId,
+      key,
+      label: ing.label,
+      confidence: result.confidence,
+      source: 'ai',
+      verified: true,
+      ewgConcern: ing.ewgConcern || null,
+    })
   }
   await prisma.$transaction([
     ...(additions.length ? [prisma.productIngredient.createMany({ data: additions, skipDuplicates: true })] : []),

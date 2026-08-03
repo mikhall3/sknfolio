@@ -23,6 +23,7 @@ export default function Shelf() {
   const [error, setError] = useState('')
   const [acknowledgements, setAcknowledgements] = useState([])
   const [ingredientFilter, setIngredientFilter] = useState(null)
+  const [categoryFilter, setCategoryFilter] = useState(null)
 
   useEffect(() => {
     load()
@@ -65,13 +66,28 @@ export default function Shelf() {
     }
   }
 
-  const visibleProducts = useMemo(() => {
+  const byStatusProducts = useMemo(() => {
     if (!products) return null
     const status = tab === 'active' ? 'ACTIVE' : 'ARCHIVED'
-    const byStatus = products.filter((p) => p.status === status)
-    if (!ingredientFilter) return byStatus
-    return byStatus.filter((p) => (p.ingredientTags || []).some((t) => t.key === ingredientFilter))
-  }, [products, tab, ingredientFilter])
+    return products.filter((p) => p.status === status)
+  }, [products, tab])
+
+  const categoryCounts = useMemo(() => {
+    if (!byStatusProducts) return []
+    const counts = new Map()
+    for (const p of byStatusProducts) counts.set(p.category, (counts.get(p.category) || 0) + 1)
+    return [...counts.entries()]
+      .map(([category, count]) => ({ category, count, label: CATEGORY_MAP[category]?.label || category }))
+      .sort((a, b) => b.count - a.count)
+  }, [byStatusProducts])
+
+  const visibleProducts = useMemo(() => {
+    if (!byStatusProducts) return null
+    let filtered = byStatusProducts
+    if (categoryFilter) filtered = filtered.filter((p) => p.category === categoryFilter)
+    if (ingredientFilter) filtered = filtered.filter((p) => (p.ingredientTags || []).some((t) => t.key === ingredientFilter))
+    return filtered
+  }, [byStatusProducts, categoryFilter, ingredientFilter])
 
   const grouped = useMemo(() => {
     if (!visibleProducts) return []
@@ -158,6 +174,7 @@ export default function Shelf() {
           onClick={() => {
             setTab('active')
             setIngredientFilter(null)
+            setCategoryFilter(null)
           }}
           className={`px-4 py-1.5 rounded-full font-medium transition-colors ${
             tab === 'active' ? 'bg-white text-blush-600 shadow-sm' : 'text-plum-400'
@@ -169,6 +186,7 @@ export default function Shelf() {
           onClick={() => {
             setTab('archived')
             setIngredientFilter(null)
+            setCategoryFilter(null)
           }}
           className={`px-4 py-1.5 rounded-full font-medium transition-colors ${
             tab === 'archived' ? 'bg-white text-blush-600 shadow-sm' : 'text-plum-400'
@@ -210,6 +228,29 @@ export default function Shelf() {
               )
             })}
           </div>
+        </div>
+      )}
+
+      {categoryCounts.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1.5 mb-5">
+          <span className="text-xs text-plum-400 mr-0.5">Category:</span>
+          {categoryCounts.map((c) => {
+            const active = categoryFilter === c.category
+            return (
+              <button
+                key={c.category}
+                onClick={() => setCategoryFilter((prev) => (prev === c.category ? null : c.category))}
+                className={`inline-flex items-center gap-1 rounded-full text-xs px-2.5 py-1 border transition-colors ${
+                  active
+                    ? 'bg-blush-500 border-blush-500 text-white'
+                    : 'bg-plum-50 border-transparent text-plum-500 hover:border-blush-200'
+                }`}
+              >
+                {c.label}
+                <span className={active ? 'text-blush-100' : 'text-plum-300'}>· {c.count}</span>
+              </button>
+            )
+          })}
         </div>
       )}
 

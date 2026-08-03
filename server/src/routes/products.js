@@ -17,7 +17,8 @@ function validateIngredients(ingredients) {
     const confidence = tag?.confidence && IngredientConfidence[tag.confidence] ? tag.confidence : null
     const source = tag?.source === 'ai' ? 'ai' : 'manual'
     const verified = tag?.verified === false ? false : true
-    clean.push({ key, label, confidence, source, verified })
+    const ewgConcern = tag?.ewgConcern ? String(tag.ewgConcern).trim().slice(0, 300) : null
+    clean.push({ key, label, confidence, source, verified, ewgConcern })
   }
   return clean
 }
@@ -225,12 +226,13 @@ router.post('/:id/ingredients', async (req, res) => {
   const confidence = req.body?.confidence && IngredientConfidence[req.body.confidence] ? req.body.confidence : null
   const source = req.body?.source === 'ai' ? 'ai' : 'manual'
   const verified = req.body?.verified === false ? false : true
+  const ewgConcern = req.body?.ewgConcern ? String(req.body.ewgConcern).trim().slice(0, 300) : null
 
   const already = await prisma.productIngredient.findFirst({ where: { productId: existing.id, key } })
   if (already) return res.status(409).json({ error: 'That ingredient is already tagged.' })
 
   const tag = await prisma.productIngredient.create({
-    data: { productId: existing.id, key, label, confidence, source, verified },
+    data: { productId: existing.id, key, label, confidence, source, verified, ewgConcern },
   })
   res.status(201).json({ ingredientTag: tag })
 })

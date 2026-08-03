@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { X, ChevronLeft, ChevronRight, Check, Loader2, Plus, Sparkles, AlertTriangle } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Check, Loader2, Plus, Sparkles, AlertTriangle, ShieldAlert } from 'lucide-react'
 import { CATEGORIES, FILL_LEVELS, SIZE_TYPES, TIME_OF_DAY_OPTIONS } from '../data/categories'
 import { CURATED_INGREDIENTS, slugify } from '../data/ingredients'
 import { findShelfConflicts } from '../lib/ingredientStats'
@@ -131,7 +131,7 @@ export default function AddProductModal({
         const key = ing.key || slugify(ing.label)
         if (!key || existingKeys.has(key)) return null
         existingKeys.add(key)
-        return { key, label: ing.label, confidence: result.confidence, source: 'ai' }
+        return { key, label: ing.label, confidence: result.confidence, source: 'ai', ewgConcern: ing.ewgConcern || null }
       })
       .filter(Boolean)
   }
@@ -434,18 +434,21 @@ export default function AddProductModal({
 
               <div className="flex flex-wrap gap-2 mb-4">
                 {CURATED_INGREDIENTS.map((ing) => {
-                  const active = form.ingredients.some((i) => i.key === ing.key)
+                  const tag = form.ingredients.find((i) => i.key === ing.key)
+                  const active = Boolean(tag)
                   return (
                     <button
                       key={ing.key}
                       onClick={() => toggleIngredient(ing)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      title={tag?.ewgConcern ? `Per EWG: ${tag.ewgConcern}` : undefined}
+                      className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                         active
                           ? 'border-blush-400 bg-blush-50 text-blush-700'
                           : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
                       }`}
                     >
                       {ing.label}
+                      {tag?.ewgConcern && <ShieldAlert size={12} className="text-plum-400" />}
                     </button>
                   )
                 })}
@@ -472,9 +475,11 @@ export default function AddProductModal({
                     .map((i) => (
                       <span
                         key={i.key}
+                        title={i.ewgConcern ? `Per EWG: ${i.ewgConcern}` : undefined}
                         className="rounded-full bg-plum-50 border border-plum-200 text-plum-600 px-3 py-1.5 text-xs flex items-center gap-1"
                       >
                         {i.label}
+                        {i.ewgConcern && <ShieldAlert size={12} className="text-plum-400" />}
                         <button onClick={() => toggleIngredient(i)} className="text-plum-400 hover:text-plum-700">
                           <X size={12} />
                         </button>

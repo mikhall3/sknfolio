@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { X, Star, Trash2, PackageCheck, Plus, Loader2, Sparkles, RotateCcw } from 'lucide-react'
+import { X, Star, Trash2, PackageCheck, Plus, Loader2, Sparkles, RotateCcw, ShieldAlert } from 'lucide-react'
 import { CATEGORIES, CATEGORY_MAP, FILL_LEVELS, SIZE_TYPES, TIME_OF_DAY_OPTIONS } from '../data/categories'
 import { CURATED_INGREDIENTS, slugify } from '../data/ingredients'
 import { friendlyDate } from '../lib/dates'
@@ -316,19 +316,22 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
 
           <div className="flex flex-wrap gap-2 mb-3">
             {CURATED_INGREDIENTS.map((ing) => {
-              const active = current.ingredientTags.some((t) => t.key === ing.key)
+              const tag = current.ingredientTags.find((t) => t.key === ing.key)
+              const active = Boolean(tag)
               return (
                 <button
                   key={ing.key}
                   onClick={() => !archived && toggleIngredient(ing)}
                   disabled={archived}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  title={tag?.ewgConcern ? `Per EWG: ${tag.ewgConcern}` : undefined}
+                  className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                     active
                       ? 'border-blush-400 bg-blush-50 text-blush-700'
                       : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
                   } ${archived ? 'opacity-70' : ''}`}
                 >
                   {ing.label}
+                  {tag?.ewgConcern && <ShieldAlert size={12} className="text-plum-400" />}
                 </button>
               )
             })}
@@ -355,9 +358,11 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
               {customTags.map((t) => (
                 <span
                   key={t.id}
+                  title={t.ewgConcern ? `Per EWG: ${t.ewgConcern}` : undefined}
                   className="rounded-full bg-plum-50 border border-plum-200 text-plum-600 px-3 py-1.5 text-xs flex items-center gap-1"
                 >
                   {t.label}
+                  {t.ewgConcern && <ShieldAlert size={12} className="text-plum-400" />}
                   {!archived && (
                     <button onClick={() => removeIngredient(t)} className="text-plum-400 hover:text-plum-700">
                       <X size={12} />
