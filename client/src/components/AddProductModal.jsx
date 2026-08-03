@@ -38,7 +38,7 @@ export default function AddProductModal({
     fillLevel: 100,
     sizeType: null,
     timeOfDay: defaultTimeOfDay || null,
-    favourite: null,
+    favourite: false,
     ingredients: [],
   })
   const [freeform, setFreeform] = useState('')
@@ -63,7 +63,6 @@ export default function AddProductModal({
     if (step === 'name') return form.name.trim().length > 0
     if (step === 'fill') return true
     if (step === 'timing') return Boolean(form.timeOfDay)
-    if (step === 'regular') return form.favourite !== null
     return true
   }
 
@@ -100,7 +99,7 @@ export default function AddProductModal({
       fillLevel: 100,
       sizeType: null,
       timeOfDay: defaultTimeOfDay || null,
-      favourite: null,
+      favourite: false,
       ingredients: [],
     })
     setFreeform('')
@@ -341,32 +340,27 @@ export default function AddProductModal({
 
           {step === 'regular' && (
             <div>
-              <h2 className="font-display text-2xl font-semibold mb-1">Used regularly?</h2>
+              <h2 className="font-display text-2xl font-semibold mb-1">In your rotation?</h2>
               <p className="text-sm text-plum-500 mb-5">
-                We'll favourite it and log it for you daily, so you don't have to re-enter it every time.
+                Tick this if you're currently using it, and we'll log it in your diary automatically each day —
+                no need to re-enter it. Rotating through a few products? Tick as many as apply, one by one, and
+                untick anytime from the product page when you move on.
               </p>
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  onClick={() => setForm((f) => ({ ...f, favourite: true }))}
-                  className={`rounded-2xl border px-4 py-3 text-sm font-medium transition-colors ${
-                    form.favourite === true
-                      ? 'border-blush-400 bg-blush-50 text-blush-700'
-                      : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
-                  }`}
-                >
-                  Yes, daily staple
-                </button>
-                <button
-                  onClick={() => setForm((f) => ({ ...f, favourite: false }))}
-                  className={`rounded-2xl border px-4 py-3 text-sm font-medium transition-colors ${
-                    form.favourite === false
-                      ? 'border-blush-400 bg-blush-50 text-blush-700'
-                      : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
-                  }`}
-                >
-                  Not really
-                </button>
-              </div>
+              <label
+                className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-medium cursor-pointer transition-colors ${
+                  form.favourite
+                    ? 'border-blush-400 bg-blush-50 text-blush-700'
+                    : 'border-plum-100 bg-white text-plum-500 hover:border-blush-200'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={form.favourite}
+                  onChange={(e) => setForm((f) => ({ ...f, favourite: e.target.checked }))}
+                  className="h-4 w-4 rounded border-plum-300 text-blush-500 focus:ring-blush-300"
+                />
+                Yes, currently using this one
+              </label>
             </div>
           )}
 
