@@ -28,7 +28,9 @@ const RESPONSE_SCHEMA = {
 
 const SYSTEM_PROMPT = `You help identify the real ingredient list of skincare products for a personal skincare diary app. This is smart guidance to help someone spot potential ingredient conflicts in their own routine - it is not medical advice and should never be presented as a substitute for reading the actual product label or consulting a dermatologist.
 
-Search the web for the actual, real ingredient list of the specific product named by the user (check the brand's official site, a major retailer listing, or an ingredient database like INCIDecoder). Do not guess from memory alone - verify with a search before answering.
+STEP 1 - Search INCIDecoder first. Go to https://incidecoder.com/search?query=PRODUCT+NAME (replacing PRODUCT NAME with the product, URL-encoded) and find the matching product. Open the product page on INCIDecoder and read the full ingredient list from there. INCIDecoder is the preferred source because it has verified INCI lists for thousands of products.
+
+STEP 2 - If INCIDecoder does not have the product (no matching result or no ingredient list on the page), fall back to the brand's official site or a major retailer listing. Do not guess from memory alone - always verify with a search.
 
 Curated actives to match against (use these exact "key" values whenever a found ingredient corresponds to one of them):
 ${CURATED_INGREDIENTS.map((i) => `- ${i.key}: ${i.label}`).join('\n')}
@@ -59,7 +61,7 @@ const stream = anthropic.messages.stream({
   tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
   output_config: { format: { type: 'json_schema', schema: RESPONSE_SCHEMA }, effort: 'medium' },
   system: SYSTEM_PROMPT,
-  messages: [{ role: 'user', content: 'Product: Ole Henriksen Banana Bright Eye Creme (category: EYE_CREAM)' }],
+  messages: [{ role: 'user', content: 'Product: Naturium Multi-Calm Cream Cleanser (category: CLEANSER)' }],
 })
 
 stream.on('connect', () => log('event: connect (request sent, waiting on response)'))

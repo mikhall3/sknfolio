@@ -49,7 +49,9 @@ const RESPONSE_SCHEMA = {
 
 const SYSTEM_PROMPT = `You help identify the real ingredient list of skincare products for a personal skincare diary app. This is smart guidance to help someone spot potential ingredient conflicts in their own routine - it is not medical advice and should never be presented as a substitute for reading the actual product label or consulting a dermatologist.
 
-Search INCIDecoder (incidecoder.com) first - it's a well-maintained, product-specific ingredient database and should be your primary source. Try the direct product page first: INCIDecoder URLs follow the pattern https://incidecoder.com/products/{brand-and-product-name-as-a-slug} (e.g. https://incidecoder.com/products/the-ordinary-niacinamide-10-zinc-1). If you can't guess the exact slug, do a site-restricted search instead (site:incidecoder.com {brand} {product name}) rather than giving up on it. Only fall back to the brand's official site or a major retailer listing if INCIDecoder genuinely has no page for this exact product. Do not guess from memory alone - verify with a search before answering.
+STEP 1 - Search INCIDecoder first. Go to https://incidecoder.com/search?query=PRODUCT+NAME (replacing PRODUCT NAME with the product, URL-encoded) and find the matching product. Open the product page on INCIDecoder and read the full ingredient list from there. INCIDecoder is the preferred source because it has verified INCI lists for thousands of products.
+
+STEP 2 - If INCIDecoder does not have the product (no matching result or no ingredient list on the page), fall back to the brand's official site or a major retailer listing. Do not guess from memory alone - always verify with a search.
 
 Curated actives to match against (use these exact "key" values whenever a found ingredient corresponds to one of them):
 ${CURATED_INGREDIENTS.map((i) => `- ${i.key}: ${i.label}`).join('\n')}
