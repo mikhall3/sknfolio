@@ -434,7 +434,7 @@ export default function AddProductModal({
                     <button
                       key={ing.key}
                       onClick={() => toggleIngredient(ing)}
-                      title={tag?.ewgConcern ? `Per EWG: ${tag.ewgConcern}` : undefined}
+                      title={tag?.ewgConcern ? `Worth knowing: ${tag.ewgConcern}` : undefined}
                       className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                         active
                           ? 'border-blush-400 bg-blush-50 text-blush-700'
@@ -469,7 +469,7 @@ export default function AddProductModal({
                     .map((i) => (
                       <span
                         key={i.key}
-                        title={i.ewgConcern ? `Per EWG: ${i.ewgConcern}` : undefined}
+                        title={i.ewgConcern ? `Worth knowing: ${i.ewgConcern}` : undefined}
                         className="rounded-full bg-plum-50 border border-plum-200 text-plum-600 px-3 py-1.5 text-xs flex items-center gap-1"
                       >
                         {i.label}

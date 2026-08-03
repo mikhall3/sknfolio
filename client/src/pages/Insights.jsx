@@ -13,6 +13,7 @@ import {
   GraduationCap,
   ChevronDown,
   ChevronUp,
+  ShieldAlert,
 } from 'lucide-react'
 import { api } from '../lib/api'
 import { localDateString, friendlyDate } from '../lib/dates'
@@ -40,12 +41,23 @@ export default function Insights() {
   const [savingCheckin, setSavingCheckin] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [expandedWeeks, setExpandedWeeks] = useState(new Set())
+  const [ingredientsOpen, setIngredientsOpen] = useState(false)
+  const [expandedIngredients, setExpandedIngredients] = useState(new Set())
 
   function toggleWeek(weekOf) {
     setExpandedWeeks((prev) => {
       const next = new Set(prev)
       if (next.has(weekOf)) next.delete(weekOf)
       else next.add(weekOf)
+      return next
+    })
+  }
+
+  function toggleIngredientRow(key) {
+    setExpandedIngredients((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
   }
@@ -96,13 +108,16 @@ export default function Insights() {
   const showCheckinForm = editingCheckin || !data.checkin.current
 
   const ingredientByKey = new Map(CURATED_INGREDIENTS.map((i) => [i.key, i]))
-  const educationFacts = commonIngredients(activeProducts || [])
+  const ingredientEducation = commonIngredients(activeProducts || [])
     .map((usage) => {
       const curated = ingredientByKey.get(usage.key)
-      return curated ? { ...curated, products: usage.products } : null
+      const concern =
+        usage.products.flatMap((p) => p.ingredientTags || []).find((t) => t.key === usage.key && t.ewgConcern)
+          ?.ewgConcern || null
+      if (!curated?.fact && !concern) return null
+      return { key: usage.key, label: usage.label, fact: curated?.fact || null, concern, products: usage.products }
     })
-    .filter((ing) => ing?.fact)
-    .slice(0, 4)
+    .filter(Boolean)
 
   return (
     <div className="space-y-4">
@@ -275,23 +290,61 @@ export default function Insights() {
         </div>
       )}
 
-      {educationFacts.length > 0 && (
+      {ingredientEducation.length > 0 && (
         <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
-          <div className="flex items-center gap-1.5 mb-3">
-            <GraduationCap size={16} className="text-blush-500" strokeWidth={1.75} />
-            <h2 className="font-display text-lg font-semibold text-plum-900">Know your ingredients</h2>
-          </div>
-          <div className="space-y-3">
-            {educationFacts.map((ing) => (
-              <div key={ing.key}>
-                <p className="text-sm font-medium text-plum-800">{ing.label}</p>
-                <p className="text-xs text-plum-500 leading-relaxed">{ing.fact}</p>
-                <p className="text-[11px] text-plum-300 mt-1">
-                  Appears in: {ing.products.map(productLabel).join(', ')}
-                </p>
-              </div>
-            ))}
-          </div>
+          <button
+            onClick={() => setIngredientsOpen((v) => !v)}
+            className="w-full flex items-center justify-between gap-2"
+          >
+            <div className="flex items-center gap-1.5">
+              <GraduationCap size={16} className="text-blush-500 shrink-0" strokeWidth={1.75} />
+              <h2 className="font-display text-lg font-semibold text-plum-900">What your products do for you</h2>
+            </div>
+            {ingredientsOpen ? (
+              <ChevronUp size={16} className="text-plum-400 shrink-0" />
+            ) : (
+              <ChevronDown size={16} className="text-plum-400 shrink-0" />
+            )}
+          </button>
+          {!ingredientsOpen ? (
+            <p className="text-xs text-plum-500 mt-1.5">
+              {ingredientEducation.length} ingredient{ingredientEducation.length === 1 ? '' : 's'} on your shelf,
+              explained — tap to open.
+            </p>
+          ) : (
+            <div className="mt-3 divide-y divide-blush-100">
+              {ingredientEducation.map((ing) => {
+                const expanded = expandedIngredients.has(ing.key)
+                return (
+                  <div key={ing.key}>
+                    <button
+                      onClick={() => toggleIngredientRow(ing.key)}
+                      className="w-full flex items-center justify-between gap-2 py-2.5 text-left"
+                    >
+                      <span className="flex items-center gap-1.5 text-sm font-medium text-plum-800">
+                        {ing.concern && <ShieldAlert size={12} className="text-blush-500 shrink-0" strokeWidth={1.75} />}
+                        {ing.label}
+                      </span>
+                      {expanded ? (
+                        <ChevronUp size={14} className="text-plum-300 shrink-0" />
+                      ) : (
+                        <ChevronDown size={14} className="text-plum-300 shrink-0" />
+                      )}
+                    </button>
+                    {expanded && (
+                      <div className="pb-3 space-y-1.5">
+                        {ing.fact && <p className="text-xs text-plum-500 leading-relaxed">{ing.fact}</p>}
+                        {ing.concern && <p className="text-xs text-blush-600 leading-relaxed">{ing.concern}</p>}
+                        <p className="text-[11px] text-plum-400">
+                          Appears in: {ing.products.map(productLabel).join(', ')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 

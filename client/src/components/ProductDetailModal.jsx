@@ -63,6 +63,14 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
   const CategoryIcon = category?.icon
   const customTags = current.ingredientTags.filter((t) => !CURATED_INGREDIENTS.some((c) => c.key === t.key))
 
+  // What's known about each tagged ingredient - a curated fact, a flagged
+  // concern, or both. Ingredients with neither stay plain tags above, nothing
+  // to explain here.
+  const curatedByKey = new Map(CURATED_INGREDIENTS.map((c) => [c.key, c]))
+  const learnItems = current.ingredientTags
+    .map((t) => ({ key: t.key, label: t.label, fact: curatedByKey.get(t.key)?.fact || null, concern: t.ewgConcern || null }))
+    .filter((i) => i.fact || i.concern)
+
   async function patch(fields) {
     setError('')
     try {
@@ -323,7 +331,7 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
                   key={ing.key}
                   onClick={() => !archived && toggleIngredient(ing)}
                   disabled={archived}
-                  title={tag?.ewgConcern ? `Per EWG: ${tag.ewgConcern}` : undefined}
+                  title={tag?.ewgConcern ? `Worth knowing: ${tag.ewgConcern}` : undefined}
                   className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                     active
                       ? 'border-blush-400 bg-blush-50 text-blush-700'
@@ -358,7 +366,7 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
               {customTags.map((t) => (
                 <span
                   key={t.id}
-                  title={t.ewgConcern ? `Per EWG: ${t.ewgConcern}` : undefined}
+                  title={t.ewgConcern ? `Worth knowing: ${t.ewgConcern}` : undefined}
                   className="rounded-full bg-plum-50 border border-plum-200 text-plum-600 px-3 py-1.5 text-xs flex items-center gap-1"
                 >
                   {t.label}
@@ -370,6 +378,44 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
                   )}
                 </span>
               ))}
+            </div>
+          )}
+
+          {(current.ingredientLookupSummary || learnItems.length > 0) && (
+            <div className="rounded-xl bg-white border border-plum-100 p-3 mb-5 space-y-2.5">
+              <div className="flex items-center gap-1.5">
+                <Sparkles size={13} className="text-blush-500 shrink-0" strokeWidth={1.75} />
+                <p className="text-xs font-semibold text-plum-800">What's in this</p>
+              </div>
+              {current.ingredientLookupSummary && (
+                <p className="text-xs text-plum-600 leading-relaxed">{current.ingredientLookupSummary}</p>
+              )}
+              {learnItems.length > 0 && (
+                <div className="space-y-1.5">
+                  {learnItems.map((i) => (
+                    <div key={i.key}>
+                      {i.fact && (
+                        <div className="flex items-start gap-1.5">
+                          <span className="w-1 h-1 rounded-full bg-plum-300 shrink-0 mt-[5px]" />
+                          <p className="text-xs leading-relaxed">
+                            <span className="font-medium text-plum-800">{i.label}</span>
+                            <span className="text-plum-500"> — {i.fact}</span>
+                          </p>
+                        </div>
+                      )}
+                      {i.concern && (
+                        <div className="flex items-start gap-1.5">
+                          <ShieldAlert size={12} className="text-blush-500 shrink-0 mt-0.5" strokeWidth={1.75} />
+                          <p className="text-xs leading-relaxed">
+                            {!i.fact && <span className="font-medium text-plum-800">{i.label}</span>}
+                            <span className="text-blush-600"> {i.concern}</span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
