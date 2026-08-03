@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Plus, Loader2 } from 'lucide-react'
 import { api } from '../lib/api'
-import { CATEGORY_MAP } from '../data/categories'
+import { CATEGORIES, CATEGORY_MAP } from '../data/categories'
 import ProductCard from '../components/ProductCard'
 import AddProductModal from '../components/AddProductModal'
 import EmptyProductModal from '../components/EmptyProductModal'
@@ -45,6 +45,8 @@ export default function Shelf() {
       .catch((err) => setError(err.message))
   }
 
+  const categoryOrder = useMemo(() => new Map(CATEGORIES.map((c, i) => [c.value, i])), [])
+
   const acknowledgedKeys = useMemo(
     () => new Set(acknowledgements.map((a) => pairKey(a.ingredientA, a.ingredientB))),
     [acknowledgements]
@@ -78,8 +80,8 @@ export default function Shelf() {
     for (const p of byStatusProducts) counts.set(p.category, (counts.get(p.category) || 0) + 1)
     return [...counts.entries()]
       .map(([category, count]) => ({ category, count, label: CATEGORY_MAP[category]?.label || category }))
-      .sort((a, b) => b.count - a.count)
-  }, [byStatusProducts])
+      .sort((a, b) => (categoryOrder.get(a.category) ?? 0) - (categoryOrder.get(b.category) ?? 0))
+  }, [byStatusProducts, categoryOrder])
 
   const visibleProducts = useMemo(() => {
     if (!byStatusProducts) return null
@@ -96,8 +98,8 @@ export default function Shelf() {
       if (!map.has(p.category)) map.set(p.category, [])
       map.get(p.category).push(p)
     }
-    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
-  }, [visibleProducts])
+    return [...map.entries()].sort((a, b) => (categoryOrder.get(a[0]) ?? 0) - (categoryOrder.get(b[0]) ?? 0))
+  }, [visibleProducts, categoryOrder])
 
   const activeProducts = useMemo(() => (products || []).filter((p) => p.status === 'ACTIVE'), [products])
   const topIngredients = useMemo(() => commonIngredients(activeProducts).slice(0, 5), [activeProducts])
