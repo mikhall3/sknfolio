@@ -126,24 +126,6 @@ export default function Shelf() {
     })
   }
 
-  async function toggleFavourite(product) {
-    setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, favourite: !p.favourite } : p)))
-    try {
-      await api.patch(`/products/${product.id}`, { favourite: !product.favourite })
-    } catch {
-      load()
-    }
-  }
-
-  async function deleteProduct(product) {
-    setProducts((prev) => prev.filter((p) => p.id !== product.id))
-    try {
-      await api.delete(`/products/${product.id}`)
-    } catch {
-      load()
-    }
-  }
-
   function handleEmptyDone({ action, product, rebought }) {
     upsertProduct(product)
     setEmptyingProduct(null)
@@ -335,13 +317,11 @@ export default function Shelf() {
               <h2 className="text-xs font-semibold text-plum-400 uppercase tracking-wide mb-2">
                 {CATEGORY_MAP[category]?.label} · {items.length}
               </h2>
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="space-y-2">
                 {items.map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onToggleFavourite={toggleFavourite}
-                    onDelete={deleteProduct}
                     onMarkEmpty={setEmptyingProduct}
                     onOpenDetail={setDetailProduct}
                   />
