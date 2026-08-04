@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Loader2, Activity, Sparkles, RotateCcw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Activity, Sparkles, RotateCcw, NotebookPen } from 'lucide-react'
 import { api } from '../lib/api'
 import { localDateString, addDays, friendlyDate } from '../lib/dates'
 import DiarySection from '../components/DiarySection'
@@ -171,7 +171,7 @@ export default function Diary() {
       <div className="flex items-center justify-between mb-5">
         <button
           onClick={() => setDateStr((d) => addDays(d, -1))}
-          className="w-8 h-8 flex items-center justify-center rounded-full text-plum-400 hover:bg-plum-50"
+          className="w-8 h-8 flex items-center justify-center rounded-full text-plum-400 hover:bg-blush-50 hover:text-blush-600 transition-colors"
         >
           <ChevronLeft size={18} />
         </button>
@@ -186,7 +186,7 @@ export default function Diary() {
         <button
           onClick={() => setDateStr((d) => addDays(d, 1))}
           disabled={dateStr === TODAY}
-          className="w-8 h-8 flex items-center justify-center rounded-full text-plum-400 hover:bg-plum-50 disabled:opacity-30"
+          className="w-8 h-8 flex items-center justify-center rounded-full text-plum-400 hover:bg-blush-50 hover:text-blush-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-plum-400"
         >
           <ChevronRight size={18} />
         </button>
@@ -233,7 +233,10 @@ export default function Diary() {
           />
 
           <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
-            <h2 className="font-display text-lg font-semibold text-plum-900 mb-2">Notes</h2>
+            <div className="flex items-center gap-1.5 mb-2">
+              <NotebookPen size={15} className="text-blush-500" strokeWidth={1.75} />
+              <h2 className="font-display text-lg font-semibold text-plum-900">Notes</h2>
+            </div>
             <textarea
               value={note}
               onChange={(e) => handleNoteChange(e.target.value)}
@@ -252,7 +255,10 @@ export default function Diary() {
           {entry.am.length + entry.pm.length > 0 && (
             <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="font-display text-lg font-semibold text-plum-900">Review today's routine</h2>
+                <div className="flex items-center gap-1.5">
+                  <Sparkles size={15} className="text-blush-500" strokeWidth={1.75} />
+                  <h2 className="font-display text-lg font-semibold text-plum-900">Review today's routine</h2>
+                </div>
                 {entry.review && (
                   <button
                     onClick={generateReview}

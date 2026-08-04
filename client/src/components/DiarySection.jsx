@@ -41,8 +41,10 @@ export default function DiarySection({
 
   return (
     <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
-      <div className="flex items-center gap-1.5 mb-3">
-        <Icon size={16} className="text-blush-500" strokeWidth={1.75} />
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-7 h-7 rounded-full bg-blush-500 text-white flex items-center justify-center shrink-0">
+          <Icon size={13} strokeWidth={1.75} />
+        </div>
         <h2 className="font-display text-lg font-semibold text-plum-900">{TITLES[period]}</h2>
       </div>
 
@@ -54,9 +56,11 @@ export default function DiarySection({
             <div
               key={logId}
               onClick={() => onOpenDetail(product)}
-              className="flex items-center gap-2 rounded-xl bg-white border border-plum-100 pl-3 pr-1.5 py-1.5 text-xs text-plum-800 cursor-pointer hover:border-blush-200 transition-colors"
+              className="flex items-center gap-2 rounded-xl bg-white border border-plum-100 border-l-[3px] border-l-blush-400 pl-3 pr-1.5 py-1.5 text-xs text-plum-800 cursor-pointer hover:border-blush-200 transition-colors"
             >
-              <span className="text-plum-300 font-medium w-4 shrink-0">{index + 1}</span>
+              <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blush-50 text-blush-600 font-semibold text-[10px] shrink-0">
+                {index + 1}
+              </span>
               <span className="flex-1 min-w-0 truncate">
                 {productLabel(product)} <span className="text-plum-300">· {CATEGORY_MAP[product.category]?.label}</span>
               </span>

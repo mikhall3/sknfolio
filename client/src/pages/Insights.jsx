@@ -10,6 +10,9 @@ import {
   Pencil,
   Trash2,
   CalendarCheck,
+  CalendarDays,
+  TrendingUp,
+  Activity,
   GraduationCap,
   ChevronDown,
   ChevronUp,
@@ -155,7 +158,10 @@ export default function Insights() {
 
       <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="font-display text-lg font-semibold text-plum-900">This week's check-in</h2>
+          <div className="flex items-center gap-1.5">
+            <CalendarCheck size={16} className="text-blush-500" strokeWidth={1.75} />
+            <h2 className="font-display text-lg font-semibold text-plum-900">This week's check-in</h2>
+          </div>
           {!showCheckinForm && (
             <button onClick={() => setEditingCheckin(true)} className="text-plum-400 hover:text-blush-600">
               <Pencil size={14} />
@@ -219,7 +225,10 @@ export default function Insights() {
       </div>
 
       <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
-        <h2 className="font-display text-lg font-semibold text-plum-900 mb-3">This week</h2>
+        <div className="flex items-center gap-1.5 mb-3">
+          <CalendarDays size={16} className="text-blush-500" strokeWidth={1.75} />
+          <h2 className="font-display text-lg font-semibold text-plum-900">This week</h2>
+        </div>
         <div className="space-y-3">
           {data.thisWeek.map((day) => {
             const hasContent = day.am.length > 0 || day.pm.length > 0 || day.note
@@ -257,7 +266,10 @@ export default function Insights() {
 
       {data.checkin.history.length > 0 && (
         <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
-          <h2 className="font-display text-lg font-semibold text-plum-900 mb-2">Your progress</h2>
+          <div className="flex items-center gap-1.5 mb-2">
+            <TrendingUp size={16} className="text-blush-500" strokeWidth={1.75} />
+            <h2 className="font-display text-lg font-semibold text-plum-900">Your progress</h2>
+          </div>
           <div className="divide-y divide-blush-100">
             {data.checkin.history.map((c) => {
               const Icon = FEELING_ICON[c.feeling]
@@ -353,7 +365,10 @@ export default function Insights() {
 
       <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-lg font-semibold text-plum-900">Skin tracker</h2>
+          <div className="flex items-center gap-1.5">
+            <Activity size={16} className="text-blush-500" strokeWidth={1.75} />
+            <h2 className="font-display text-lg font-semibold text-plum-900">Skin tracker</h2>
+          </div>
           <button
             onClick={() => setModalOpen(true)}
             className="flex items-center gap-1 text-xs font-medium text-blush-600 hover:text-blush-700"

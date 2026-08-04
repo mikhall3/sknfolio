@@ -106,7 +106,7 @@ export default function EmptyProductModal({ open, product, onClose, onDone }) {
                 disabled={saving || (!rating && value !== 'retire')}
                 className="w-full flex items-center gap-3 rounded-2xl border border-plum-100 bg-white px-4 py-3 text-left hover:border-blush-300 hover:bg-blush-50 transition-colors disabled:opacity-40"
               >
-                <div className="w-8 h-8 rounded-xl bg-blush-50 text-blush-500 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-blush-500 text-white flex items-center justify-center shrink-0">
                   {saving ? <Loader2 size={15} className="animate-spin" /> : <Icon size={15} strokeWidth={1.75} />}
                 </div>
                 <div>
