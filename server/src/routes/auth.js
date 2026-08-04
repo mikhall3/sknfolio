@@ -46,7 +46,12 @@ router.post('/request-link', async (req, res) => {
   const url = `${resolveServerUrl(req)}/api/auth/verify?token=${token}`
   await sendMagicLinkEmail(email, url)
 
-  const devLink = process.env.NODE_ENV === 'production' ? undefined : url
+  // Shown on-screen instead of only emailed - normally dev-only, but
+  // SHOW_DEV_LINK is an explicit escape hatch for running for real without
+  // SMTP set up yet (e.g. solo use before inviting anyone else). Remove that
+  // env var once real email delivery is in place.
+  const showDevLink = process.env.NODE_ENV !== 'production' || process.env.SHOW_DEV_LINK === 'true'
+  const devLink = showDevLink ? url : undefined
   res.json({ ok: true, devLink })
 })
 

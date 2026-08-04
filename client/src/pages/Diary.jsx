@@ -325,6 +325,7 @@ export default function Diary() {
       <AbnormalityModal
         open={trackingOpen}
         date={dateStr}
+        products={activeProducts}
         onClose={() => setTrackingOpen(false)}
         onLogged={() => {}}
       />

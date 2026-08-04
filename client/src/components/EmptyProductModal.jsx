@@ -44,14 +44,14 @@ export default function EmptyProductModal({ open, product, onClose, onDone }) {
   }
 
   async function handleAction(action) {
-    if (!rating) {
+    if (!rating && action !== 'retire') {
       setError('Give it a rating first.')
       return
     }
     setSaving(true)
     setError('')
     try {
-      const res = await api.post(`/products/${product.id}/empty`, { rating, comment: comment.trim(), action })
+      const res = await api.post(`/products/${product.id}/empty`, { rating: rating || null, comment: comment.trim(), action })
       onDone({ action, ...res })
       reset()
     } catch (err) {
@@ -74,7 +74,7 @@ export default function EmptyProductModal({ open, product, onClose, onDone }) {
         <div className="px-6 pb-2 overflow-y-auto flex-1">
           <p className="text-sm text-plum-500 mb-5">{productLabel(product)}</p>
 
-          <p className="text-xs font-medium text-plum-500 mb-2">How was it, out of 5?</p>
+          <p className="text-xs font-medium text-plum-500 mb-2">How was it, out of 5? (optional to just retire)</p>
           <div className="flex gap-1.5 mb-5">
             {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} onClick={() => setRating(n)} className="text-blush-400">
@@ -103,7 +103,7 @@ export default function EmptyProductModal({ open, product, onClose, onDone }) {
               <button
                 key={value}
                 onClick={() => handleAction(value)}
-                disabled={saving || !rating}
+                disabled={saving || (!rating && value !== 'retire')}
                 className="w-full flex items-center gap-3 rounded-2xl border border-plum-100 bg-white px-4 py-3 text-left hover:border-blush-300 hover:bg-blush-50 transition-colors disabled:opacity-40"
               >
                 <div className="w-8 h-8 rounded-xl bg-blush-50 text-blush-500 flex items-center justify-center shrink-0">

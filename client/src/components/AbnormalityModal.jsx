@@ -3,8 +3,10 @@ import { X, Loader2, Check } from 'lucide-react'
 import { ABNORMALITY_TYPES } from '../data/insights'
 import { api } from '../lib/api'
 import { friendlyDate } from '../lib/dates'
+import { productsAddedNear } from '../lib/productCorrelation'
+import { productLabel } from '../lib/productLabel'
 
-export default function AbnormalityModal({ open, date, onClose, onLogged }) {
+export default function AbnormalityModal({ open, date, products, onClose, onLogged }) {
   const [type, setType] = useState(null)
   const [severity, setSeverity] = useState(0)
   const [note, setNote] = useState('')
@@ -12,6 +14,8 @@ export default function AbnormalityModal({ open, date, onClose, onLogged }) {
   const [error, setError] = useState('')
 
   if (!open) return null
+
+  const nearby = productsAddedNear(date, products)
 
   function reset() {
     setType(null)
@@ -55,6 +59,13 @@ export default function AbnormalityModal({ open, date, onClose, onLogged }) {
 
         <div className="px-6 pb-2 overflow-y-auto flex-1">
           <p className="text-sm text-plum-500 mb-5">Tracking for {friendlyDate(date).toLowerCase()}.</p>
+
+          {nearby.length > 0 && (
+            <p className="text-xs text-blush-600 bg-blush-50 border border-blush-200 rounded-xl px-3 py-2 mb-5 leading-relaxed">
+              Added not long before: {nearby.map(({ product }) => productLabel(product)).join(', ')} — worth a
+              mention in the note if it seems related.
+            </p>
+          )}
 
           <p className="text-xs font-medium text-plum-500 mb-2">Type</p>
           <div className="flex flex-wrap gap-2 mb-5">

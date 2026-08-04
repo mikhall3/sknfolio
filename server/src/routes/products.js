@@ -140,12 +140,20 @@ router.post('/:id/empty', async (req, res) => {
   if (existing.status !== 'ACTIVE') return res.status(400).json({ error: 'This product is already archived.' })
 
   const { rating, comment, action } = req.body || {}
-  const cleanRating = Number(rating)
-  if (!Number.isInteger(cleanRating) || cleanRating < 1 || cleanRating > 5) {
-    return res.status(400).json({ error: 'Rating must be a whole number from 1 to 5.' })
-  }
   const retireReason = EMPTY_ACTIONS[action]
   if (!retireReason) return res.status(400).json({ error: 'Action must be rebuy, replace, or retire.' })
+
+  // A rating only makes sense when there's an opinion behind it (rebuying or
+  // replacing implies one) - "just archiving it" doesn't require rating it first.
+  let cleanRating = null
+  if (rating !== undefined && rating !== null && rating !== '') {
+    cleanRating = Number(rating)
+    if (!Number.isInteger(cleanRating) || cleanRating < 1 || cleanRating > 5) {
+      return res.status(400).json({ error: 'Rating must be a whole number from 1 to 5.' })
+    }
+  } else if (action !== 'retire') {
+    return res.status(400).json({ error: 'Rating must be a whole number from 1 to 5.' })
+  }
   const cleanComment = comment ? String(comment).trim().slice(0, 2000) : null
 
   const archivedProduct = await prisma.product.update({

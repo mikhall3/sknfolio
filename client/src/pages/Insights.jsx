@@ -21,6 +21,7 @@ import { FEELING_OPTIONS, ABNORMALITY_TYPES } from '../data/insights'
 import { productLabel } from '../lib/productLabel'
 import { commonIngredients } from '../lib/ingredientStats'
 import { CURATED_INGREDIENTS } from '../data/ingredients'
+import { productsAddedNear } from '../lib/productCorrelation'
 import AbnormalityModal from '../components/AbnormalityModal'
 
 const TODAY = localDateString()
@@ -34,7 +35,7 @@ export default function Insights() {
   const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [abnormalities, setAbnormalities] = useState(null)
-  const [activeProducts, setActiveProducts] = useState(null)
+  const [allProducts, setAllProducts] = useState(null)
   const [editingCheckin, setEditingCheckin] = useState(false)
   const [feeling, setFeeling] = useState(null)
   const [checkinNote, setCheckinNote] = useState('')
@@ -65,7 +66,9 @@ export default function Insights() {
   useEffect(() => {
     load()
     api.get('/abnormalities').then((res) => setAbnormalities(res.abnormalities))
-    api.get('/products?status=ACTIVE').then((res) => setActiveProducts(res.products))
+    // Unfiltered - correlating a tracked issue with what was added around
+    // then needs archived products too, not just what's still on the shelf.
+    api.get('/products').then((res) => setAllProducts(res.products))
   }, [])
 
   function load() {
@@ -108,7 +111,7 @@ export default function Insights() {
   const showCheckinForm = editingCheckin || !data.checkin.current
 
   const ingredientByKey = new Map(CURATED_INGREDIENTS.map((i) => [i.key, i]))
-  const ingredientEducation = commonIngredients(activeProducts || [])
+  const ingredientEducation = commonIngredients(allProducts || [])
     .map((usage) => {
       const curated = ingredientByKey.get(usage.key)
       const concern =
@@ -367,22 +370,30 @@ export default function Insights() {
           <p className="text-xs text-plum-300">Nothing tracked yet.</p>
         ) : (
           <div className="space-y-2">
-            {abnormalities.map((a) => (
-              <div key={a.id} className="flex items-start justify-between gap-2 border-b border-blush-100 last:border-0 pb-2 last:pb-0">
-                <div className="min-w-0">
-                  <p className="text-sm text-plum-800">
-                    <span className="font-medium">{ABNORMALITY_LABEL[a.type]}</span>{' '}
-                    <span className="text-plum-400 text-xs">
-                      · severity {a.severity}/5 · {friendlyDate(a.date.slice(0, 10))}
-                    </span>
-                  </p>
-                  {a.note && <p className="text-xs text-plum-500 mt-0.5">{a.note}</p>}
+            {abnormalities.map((a) => {
+              const nearby = productsAddedNear(a.date, allProducts)
+              return (
+                <div key={a.id} className="flex items-start justify-between gap-2 border-b border-blush-100 last:border-0 pb-2 last:pb-0">
+                  <div className="min-w-0">
+                    <p className="text-sm text-plum-800">
+                      <span className="font-medium">{ABNORMALITY_LABEL[a.type]}</span>{' '}
+                      <span className="text-plum-400 text-xs">
+                        · severity {a.severity}/5 · {friendlyDate(a.date.slice(0, 10))}
+                      </span>
+                    </p>
+                    {a.note && <p className="text-xs text-plum-500 mt-0.5">{a.note}</p>}
+                    {nearby.length > 0 && (
+                      <p className="text-[11px] text-blush-500 mt-1">
+                        Added not long before: {nearby.map(({ product }) => productLabel(product)).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                  <button onClick={() => deleteAbnormality(a.id)} className="text-plum-300 hover:text-blush-500 shrink-0">
+                    <Trash2 size={13} />
+                  </button>
                 </div>
-                <button onClick={() => deleteAbnormality(a.id)} className="text-plum-300 hover:text-blush-500 shrink-0">
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -390,6 +401,7 @@ export default function Insights() {
       <AbnormalityModal
         open={modalOpen}
         date={TODAY}
+        products={allProducts}
         onClose={() => setModalOpen(false)}
         onLogged={(abnormality) => setAbnormalities((prev) => [abnormality, ...(prev || [])])}
       />

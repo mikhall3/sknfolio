@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Plus, Loader2, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { Plus, Loader2, ChevronDown, ChevronUp, X, Search } from 'lucide-react'
 import { api } from '../lib/api'
 import { CATEGORIES, CATEGORY_MAP } from '../data/categories'
 import ProductCard from '../components/ProductCard'
@@ -11,6 +11,7 @@ import LogTodayPrompt from '../components/LogTodayPrompt'
 import { logFavouriteToday } from '../lib/diaryFavourites'
 import { commonIngredients, findConflicts, pairKey } from '../lib/ingredientStats'
 import { CURATED_INGREDIENTS } from '../data/ingredients'
+import { productLabel } from '../lib/productLabel'
 import { Check, RotateCcw } from 'lucide-react'
 
 export default function Shelf() {
@@ -26,6 +27,7 @@ export default function Shelf() {
   const [categoryFilter, setCategoryFilter] = useState(null)
   const [categoryChipsOpen, setCategoryChipsOpen] = useState(false)
   const [ingredientChipsOpen, setIngredientChipsOpen] = useState(false)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     load()
@@ -90,8 +92,10 @@ export default function Shelf() {
     let filtered = byStatusProducts
     if (categoryFilter) filtered = filtered.filter((p) => p.category === categoryFilter)
     if (ingredientFilter) filtered = filtered.filter((p) => (p.ingredientTags || []).some((t) => t.key === ingredientFilter))
+    const query = search.trim().toLowerCase()
+    if (query) filtered = filtered.filter((p) => productLabel(p).toLowerCase().includes(query))
     return filtered
-  }, [byStatusProducts, categoryFilter, ingredientFilter])
+  }, [byStatusProducts, categoryFilter, ingredientFilter, search])
 
   const grouped = useMemo(() => {
     if (!visibleProducts) return []
@@ -180,6 +184,21 @@ export default function Shelf() {
         >
           Finished
         </button>
+      </div>
+
+      <div className="flex items-center gap-2 rounded-xl border border-plum-200 bg-white px-3 py-2 mb-5 focus-within:ring-2 focus-within:ring-blush-300">
+        <Search size={15} className="text-plum-300 shrink-0" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search your shelf..."
+          className="flex-1 min-w-0 bg-transparent text-sm focus:outline-none placeholder:text-plum-300"
+        />
+        {search && (
+          <button onClick={() => setSearch('')} className="text-plum-300 hover:text-blush-500 shrink-0">
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {tab === 'active' && (

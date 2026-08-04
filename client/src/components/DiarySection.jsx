@@ -19,21 +19,24 @@ export default function DiarySection({
   onLockIn,
 }) {
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [locked, setLocked] = useState(false)
   const Icon = ICONS[period]
+
+  // Derived from the products' own saved order rather than local state, so
+  // "Locked in" still reads correctly after a reload - not just until the
+  // next remount.
+  const orderField = period === 'AM' ? 'amOrder' : 'pmOrder'
+  const locked = logs.length > 0 && logs.every((l, i) => l.product[orderField] === i)
 
   function move(index, direction) {
     const next = index + direction
     if (next < 0 || next >= logs.length) return
     const reordered = [...logs]
     ;[reordered[index], reordered[next]] = [reordered[next], reordered[index]]
-    setLocked(false)
     onReorder(reordered.map((l) => l.logId))
   }
 
   async function lockIn() {
     await onLockIn(logs.map((l) => l.product.id))
-    setLocked(true)
   }
 
   return (
