@@ -14,7 +14,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-cream-100 flex flex-col">
-      <header className="sticky top-0 z-10 bg-cream-100/90 backdrop-blur-sm border-b border-blush-100">
+      <header className="sticky top-0 z-10 bg-cream-100/90 backdrop-blur-sm border-b-2 border-blush-300">
         <div className="max-w-lg mx-auto flex items-center justify-between px-4 py-3">
           <img src="/logo.png" alt="SKNFOLIO" className="h-6" />
           <div className="flex items-center gap-3">
@@ -34,15 +34,15 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <nav className="fixed bottom-0 inset-x-0 bg-cream-50/95 backdrop-blur-sm border-t border-blush-100">
+      <nav className="fixed bottom-0 inset-x-0 bg-blush-500">
         <div className="max-w-lg mx-auto flex">
           {tabs.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs transition-colors ${
-                  isActive ? 'text-blush-600' : 'text-plum-400'
+                `flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${
+                  isActive ? 'text-white' : 'text-blush-200 hover:text-blush-100'
                 }`
               }
             >

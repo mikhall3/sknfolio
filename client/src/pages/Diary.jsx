@@ -232,7 +232,7 @@ export default function Diary() {
             onLockIn={(productIds) => handleLockIn('PM', productIds)}
           />
 
-          <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
+          <div className="bg-cream-50 border border-blush-200 rounded-2xl p-4">
             <div className="flex items-center gap-1.5 mb-2">
               <NotebookPen size={15} className="text-blush-500" strokeWidth={1.75} />
               <h2 className="font-display text-lg font-semibold text-plum-900">Notes</h2>
@@ -253,7 +253,7 @@ export default function Diary() {
           </div>
 
           {entry.am.length + entry.pm.length > 0 && (
-            <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
+            <div className="bg-blush-50 border border-blush-200 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
                   <Sparkles size={15} className="text-blush-500" strokeWidth={1.75} />

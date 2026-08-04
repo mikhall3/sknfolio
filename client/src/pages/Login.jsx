@@ -35,7 +35,7 @@ export default function Login() {
           <p className="text-plum-500 text-sm mt-1">a little diary, for your face</p>
         </div>
 
-        <div className="bg-cream-50 border border-blush-100 border-t-4 border-t-blush-500 rounded-3xl shadow-sm p-7">
+        <div className="bg-cream-50 border border-blush-200 border-t-4 border-t-blush-500 rounded-3xl shadow-sm p-7">
           {status === 'sent' ? (
             <div className="text-center py-2">
               <div className="mx-auto w-11 h-11 rounded-full bg-blush-500 text-white flex items-center justify-center mb-4">

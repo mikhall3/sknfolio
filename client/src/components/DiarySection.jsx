@@ -40,7 +40,7 @@ export default function DiarySection({
   }
 
   return (
-    <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
+    <div className="bg-cream-50 border border-blush-200 rounded-2xl p-4">
       <div className="flex items-center gap-2 mb-3">
         <div className="w-7 h-7 rounded-full bg-blush-500 text-white flex items-center justify-center shrink-0">
           <Icon size={13} strokeWidth={1.75} />

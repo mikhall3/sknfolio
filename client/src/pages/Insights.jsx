@@ -129,7 +129,7 @@ export default function Insights() {
     <div className="space-y-4">
       <h1 className="font-display text-2xl font-semibold text-plum-900 mb-1">Insights</h1>
 
-      <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4 flex items-center gap-3">
+      <div className="bg-blush-50 border border-blush-200 rounded-2xl p-4 flex items-center gap-3">
         <div className="w-11 h-11 rounded-2xl bg-blush-500 text-white flex items-center justify-center shrink-0">
           <Flame size={20} fill={data.streak.count > 0 ? 'currentColor' : 'none'} strokeWidth={1.75} />
         </div>
@@ -156,7 +156,7 @@ export default function Insights() {
         </div>
       )}
 
-      <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
+      <div className="bg-cream-50 border border-blush-200 rounded-2xl p-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
             <CalendarCheck size={16} className="text-blush-500" strokeWidth={1.75} />
@@ -224,7 +224,7 @@ export default function Insights() {
         )}
       </div>
 
-      <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
+      <div className="bg-cream-50 border border-blush-200 rounded-2xl p-4">
         <div className="flex items-center gap-1.5 mb-3">
           <CalendarDays size={16} className="text-blush-500" strokeWidth={1.75} />
           <h2 className="font-display text-lg font-semibold text-plum-900">This week</h2>
@@ -265,7 +265,7 @@ export default function Insights() {
       </div>
 
       {data.checkin.history.length > 0 && (
-        <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
+        <div className="bg-cream-50 border border-blush-200 rounded-2xl p-4">
           <div className="flex items-center gap-1.5 mb-2">
             <TrendingUp size={16} className="text-blush-500" strokeWidth={1.75} />
             <h2 className="font-display text-lg font-semibold text-plum-900">Your progress</h2>
@@ -306,7 +306,7 @@ export default function Insights() {
       )}
 
       {ingredientEducation.length > 0 && (
-        <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
+        <div className="bg-cream-50 border border-blush-200 rounded-2xl p-4">
           <button
             onClick={() => setIngredientsOpen((v) => !v)}
             className="w-full flex items-center justify-between gap-2"
@@ -363,7 +363,7 @@ export default function Insights() {
         </div>
       )}
 
-      <div className="bg-cream-50 border border-blush-100 rounded-2xl p-4">
+      <div className="bg-cream-50 border border-blush-200 rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1.5">
             <Activity size={16} className="text-blush-500" strokeWidth={1.75} />
