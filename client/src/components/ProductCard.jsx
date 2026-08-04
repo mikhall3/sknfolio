@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Star, Trash2, Sunrise, Moon, SunMoon, PackageCheck, Loader2, AlertTriangle } from 'lucide-react'
 import { CATEGORY_MAP } from '../data/categories'
-import { daysBetween } from '../lib/dates'
+import { daysBetween, pluralDays } from '../lib/dates'
 
 const TIME_ICON = { AM: Sunrise, PM: Moon, BOTH: SunMoon }
 const RETIRE_LABEL = { REBOUGHT: 'Rebought', REPLACED: 'Replaced', RETIRED: 'Retired' }
@@ -74,7 +74,7 @@ export default function ProductCard({ product, onToggleFavourite, onDelete, onMa
         </div>
       ) : (
         <p className="text-[11px] text-plum-400">
-          On shelf for <span className="font-semibold text-blush-500">{daysBetween(product.dateAdded)} days</span>
+          On shelf for <span className="font-semibold text-blush-500">{pluralDays(daysBetween(product.dateAdded))}</span>
         </p>
       )}
 

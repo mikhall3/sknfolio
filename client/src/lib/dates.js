@@ -25,6 +25,10 @@ export function daysBetween(startIso, endIso) {
   return Math.max(0, Math.round((end - start) / 86400000))
 }
 
+export function pluralDays(n) {
+  return `${n} day${n === 1 ? '' : 's'}`
+}
+
 export function friendlyDate(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number)
   const date = new Date(y, m - 1, d)

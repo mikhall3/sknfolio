@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Plus, Loader2 } from 'lucide-react'
+import { Plus, Loader2, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { api } from '../lib/api'
 import { CATEGORIES, CATEGORY_MAP } from '../data/categories'
 import ProductCard from '../components/ProductCard'
@@ -24,6 +24,8 @@ export default function Shelf() {
   const [acknowledgements, setAcknowledgements] = useState([])
   const [ingredientFilter, setIngredientFilter] = useState(null)
   const [categoryFilter, setCategoryFilter] = useState(null)
+  const [categoryChipsOpen, setCategoryChipsOpen] = useState(false)
+  const [ingredientChipsOpen, setIngredientChipsOpen] = useState(false)
 
   useEffect(() => {
     load()
@@ -235,51 +237,79 @@ export default function Shelf() {
 
       {categoryCounts.length > 1 && (
         <div className="flex flex-wrap items-center gap-1.5 mb-5">
-          <span className="text-[10px] font-semibold uppercase tracking-wide bg-blush-500 text-white rounded-full px-2 py-1 mr-0.5">
+          <button
+            onClick={() => setCategoryChipsOpen((v) => !v)}
+            className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide bg-blush-500 text-white rounded-full px-2 py-1"
+          >
             Category
-          </span>
-          {categoryCounts.map((c) => {
-            const active = categoryFilter === c.category
-            return (
-              <button
-                key={c.category}
-                onClick={() => setCategoryFilter((prev) => (prev === c.category ? null : c.category))}
-                className={`inline-flex items-center gap-1 rounded-full text-xs px-2.5 py-1 border transition-colors ${
-                  active
-                    ? 'bg-blush-500 border-blush-500 text-white'
-                    : 'bg-plum-50 border-transparent text-plum-500 hover:border-blush-200'
-                }`}
-              >
-                {c.label}
-                <span className={active ? 'text-blush-100' : 'text-plum-300'}>· {c.count}</span>
-              </button>
-            )
-          })}
+            {categoryChipsOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+          </button>
+          {!categoryChipsOpen && categoryFilter && (
+            <button
+              onClick={() => setCategoryFilter(null)}
+              className="inline-flex items-center gap-1 rounded-full text-xs px-2.5 py-1 border border-blush-400 bg-blush-50 text-blush-700"
+            >
+              {CATEGORY_MAP[categoryFilter]?.label}
+              <X size={11} />
+            </button>
+          )}
+          {categoryChipsOpen &&
+            categoryCounts.map((c) => {
+              const active = categoryFilter === c.category
+              return (
+                <button
+                  key={c.category}
+                  onClick={() => setCategoryFilter((prev) => (prev === c.category ? null : c.category))}
+                  className={`inline-flex items-center gap-1 rounded-full text-xs px-2.5 py-1 border transition-colors ${
+                    active
+                      ? 'bg-blush-500 border-blush-500 text-white'
+                      : 'bg-plum-50 border-transparent text-plum-500 hover:border-blush-200'
+                  }`}
+                >
+                  {c.label}
+                  <span className={active ? 'text-blush-100' : 'text-plum-300'}>· {c.count}</span>
+                </button>
+              )
+            })}
         </div>
       )}
 
       {tab === 'active' && topIngredients.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 mb-5">
-          <span className="text-[10px] font-semibold uppercase tracking-wide bg-blush-500 text-white rounded-full px-2 py-1 mr-0.5">
+          <button
+            onClick={() => setIngredientChipsOpen((v) => !v)}
+            className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide bg-blush-500 text-white rounded-full px-2 py-1"
+          >
             Most used
-          </span>
-          {topIngredients.map((ing) => {
-            const active = ingredientFilter === ing.key
-            return (
-              <button
-                key={ing.key}
-                onClick={() => setIngredientFilter((prev) => (prev === ing.key ? null : ing.key))}
-                className={`inline-flex items-center gap-1 rounded-full text-xs px-2.5 py-1 border transition-colors ${
-                  active
-                    ? 'bg-blush-500 border-blush-500 text-white'
-                    : 'bg-plum-50 border-transparent text-plum-500 hover:border-blush-200'
-                }`}
-              >
-                {ing.label}
-                <span className={active ? 'text-blush-100' : 'text-plum-300'}>· {ing.count}</span>
-              </button>
-            )
-          })}
+            {ingredientChipsOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+          </button>
+          {!ingredientChipsOpen && ingredientFilter && (
+            <button
+              onClick={() => setIngredientFilter(null)}
+              className="inline-flex items-center gap-1 rounded-full text-xs px-2.5 py-1 border border-blush-400 bg-blush-50 text-blush-700"
+            >
+              {topIngredients.find((i) => i.key === ingredientFilter)?.label}
+              <X size={11} />
+            </button>
+          )}
+          {ingredientChipsOpen &&
+            topIngredients.map((ing) => {
+              const active = ingredientFilter === ing.key
+              return (
+                <button
+                  key={ing.key}
+                  onClick={() => setIngredientFilter((prev) => (prev === ing.key ? null : ing.key))}
+                  className={`inline-flex items-center gap-1 rounded-full text-xs px-2.5 py-1 border transition-colors ${
+                    active
+                      ? 'bg-blush-500 border-blush-500 text-white'
+                      : 'bg-plum-50 border-transparent text-plum-500 hover:border-blush-200'
+                  }`}
+                >
+                  {ing.label}
+                  <span className={active ? 'text-blush-100' : 'text-plum-300'}>· {ing.count}</span>
+                </button>
+              )
+            })}
         </div>
       )}
 

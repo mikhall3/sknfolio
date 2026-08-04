@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { X, Star, Trash2, PackageCheck, Plus, Loader2, Sparkles, RotateCcw, ShieldAlert } from 'lucide-react'
 import { CATEGORIES, CATEGORY_MAP, TIME_OF_DAY_OPTIONS } from '../data/categories'
 import { CURATED_INGREDIENTS, slugify } from '../data/ingredients'
-import { friendlyDate, shortDate, daysBetween } from '../lib/dates'
+import { friendlyDate, shortDate, daysBetween, pluralDays } from '../lib/dates'
 import { api } from '../lib/api'
 
 const RETIRE_LABEL = { REBOUGHT: 'Rebought', REPLACED: 'Replaced', RETIRED: 'Retired' }
@@ -232,7 +232,7 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
 
               <p className="text-xs text-plum-400 mb-4">
                 On your shelf since {shortDate(current.dateAdded)} —{' '}
-                <span className="font-semibold text-blush-500">{daysBetween(current.dateAdded)} days</span>
+                <span className="font-semibold text-blush-500">{pluralDays(daysBetween(current.dateAdded))}</span>
               </p>
 
               <button
@@ -268,7 +268,7 @@ export default function ProductDetailModal({ product, onClose, onUpdated, onMark
               )}
               <p className="text-[11px] text-plum-400">
                 {shortDate(current.dateAdded)} → {shortDate(current.archivedAt)} · lasted{' '}
-                <span className="font-semibold text-blush-500">{daysBetween(current.dateAdded, current.archivedAt)} days</span>
+                <span className="font-semibold text-blush-500">{pluralDays(daysBetween(current.dateAdded, current.archivedAt))}</span>
               </p>
             </div>
           )}
