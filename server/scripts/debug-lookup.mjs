@@ -15,8 +15,12 @@ const RESPONSE_SCHEMA = {
       type: 'array',
       items: {
         type: 'object',
-        properties: { label: { type: 'string' }, key: { type: ['string', 'null'] } },
-        required: ['label', 'key'],
+        properties: {
+          label: { type: 'string' },
+          key: { type: ['string', 'null'] },
+          ewgConcern: { type: ['string', 'null'] },
+        },
+        required: ['label', 'key', 'ewgConcern'],
         additionalProperties: false,
       },
     },
@@ -35,19 +39,25 @@ STEP 2 - If INCIDecoder does not have the product (no matching result or no ingr
 Curated actives to match against (use these exact "key" values whenever a found ingredient corresponds to one of them):
 ${CURATED_INGREDIENTS.map((i) => `- ${i.key}: ${i.label}`).join('\n')}
 
-For every real ingredient you find that is not in the curated list, still include it with "key": null and a plain-language "label".
+Only return ingredients that actually matter to someone tracking their skincare routine - never the full INCI list. Always include every curated active you find (matched by key). Beyond those, add at most a couple of other ingredients only if they are genuinely notable - a standout brand-marketed active, or something with real irritation/conflict potential. Do not include base or vehicle ingredients (water, common emulsifiers, thickeners, silicones, preservatives, pH adjusters, fragrance, etc.) even though they're on the real label - that's noise for this purpose. Return at most 5 ingredients total, most important first.
+
+For each ingredient, also set "ewgConcern": if ingredient safety databases (such as EWG's Skin Deep) are known to flag that specific ingredient for a notable hazard concern (e.g. endocrine disruption, allergen, contamination risk), summarize the concern itself in under 15 words as a plain, hedged caution - e.g. "May be linked to possible endocrine disruption in some studies" - never naming EWG, Skin Deep, or any other specific database in the text (that's an internal detail, not something to tell the user; it should read like general skincare knowledge, not established fact). Use your existing knowledge of well-known ingredient safety ratings rather than spending a search on every single one. If nothing notably flags an ingredient, or you are not confident it does, set "ewgConcern" to null - never guess or invent a concern.
 
 Set "confidence" honestly:
 - HIGH: you found this specific product's official ingredient list from a reliable source
 - MEDIUM: you found a plausible match, but the source was a secondary database, an older formulation, or you are not fully certain it is the exact current product
 - LOW: you could not find a reliable source and are inferring from the product's category or similar products
 
-"summary" is one or two plain sentences, written for someone who is not a chemist, explaining what you found and how sure you are. "sources" lists the URLs you actually used.`
+"summary" is exactly ONE short, plain sentence (under ~20 words) written for someone who is not a chemist, describing the product itself and its standout ingredients - not how you found it. Never name INCIDecoder, or any other specific source/database, in the summary - that's an internal detail, not something to tell the user. "sources" (a separate field, never shown in the summary) lists the URLs you actually used.`
 
 const t0 = Date.now()
 const log = (...args) => console.log(`[+${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...args)
 
+const productArg = process.argv.slice(2).join(' ').trim()
+const productLine = productArg || 'Prequel Pre-Gleanse Oil (category: CLEANSING_BALM_OIL)'
+
 log('Starting - calling anthropic.messages.stream()...')
+log('Product:', productLine)
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error('ANTHROPIC_API_KEY is not set in this process environment. Stopping.')
   process.exit(1)
@@ -61,7 +71,7 @@ const stream = anthropic.messages.stream({
   tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
   output_config: { format: { type: 'json_schema', schema: RESPONSE_SCHEMA }, effort: 'medium' },
   system: SYSTEM_PROMPT,
-  messages: [{ role: 'user', content: 'Product: Naturium Multi-Calm Cream Cleanser (category: CLEANSER)' }],
+  messages: [{ role: 'user', content: `Product: ${productLine}` }],
 })
 
 stream.on('connect', () => log('event: connect (request sent, waiting on response)'))
@@ -80,7 +90,7 @@ try {
   log('finalMessage() resolved. stop_reason =', finalMessage.stop_reason)
   const textBlocks = finalMessage.content.filter((b) => b.type === 'text')
   log('text blocks found:', textBlocks.length)
-  log('last text block (first 300 chars):', textBlocks[textBlocks.length - 1]?.text?.slice(0, 300))
+  log('full last text block:', textBlocks[textBlocks.length - 1]?.text)
 } catch (err) {
   clearInterval(watchdog)
   log('finalMessage() THREW:', err?.message || err)
